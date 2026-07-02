@@ -619,7 +619,7 @@ function renderSummary(){
   const totalExp=mr.filter(r=>r.category==='지출').reduce((s,r)=>s+r.amount,0);
   const cashExp=mr.filter(r=>r.category==='지출'&&r.is_cash).reduce((s,r)=>s+r.amount,0);
   const cardExp=totalExp-cashExp;
-  const sorted=[...mr].filter(r=>!r.is_future).sort((a,b)=>a.date.localeCompare(b.date));
+  const sorted=[...mr].filter(r=>!r.is_future).sort((a,b)=>b.date.localeCompare(a.date));
   const curBal=sorted[sorted.length-1]?.balance??getCurrentBalance();
   const nextMo=addMonth(ym_);
   const nextCardDue=rows.filter(r=>r.card_date===nextMo+'-05').reduce((s,r)=>s+r.amount,0);
@@ -722,7 +722,7 @@ function renderCard(){
 /* ── History ── */
 function renderHistory(){
   const ym_=document.getElementById('history-month').value; if(!ym_)return;
-  const mr=[...getMonthRows(ym_)].sort((a,b)=>a.date.localeCompare(b.date));
+  const mr=[...getMonthRows(ym_)].sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('history-content').innerHTML=ledgerTable(mr,true,true);
 }
 async function deleteRow(id){
