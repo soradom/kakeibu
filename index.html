@@ -218,11 +218,7 @@ table.ledger td:last-child{border-right:none}
       <label>금액 (원)</label>
       <input type="text" id="input-amount" placeholder="0" inputmode="numeric">
     </div>
-    <div class="form-row card-date-row" id="card-date-row">
-      <label>카드 결제일</label>
-      <input type="date" id="input-card-date">
-      <div class="hint">비워두면 자동으로 다음달 5일로 설정됩니다</div>
-    </div>
+    <div style="display:none"><input type="date" id="input-card-date"></div>
     <button class="submit-btn" onclick="addTransaction()">거래 추가</button>
   </div>
 </div>
@@ -519,12 +515,12 @@ function setType(t){ currentType=t;
   document.getElementById('btn-expense').className='type-btn'+(t==='expense'?' active-expense':'');
   document.getElementById('btn-income').className='type-btn'+(t==='income'?' active-income':'');
   document.getElementById('pay-method-row').style.display=t==='income'?'none':'block';
-  document.getElementById('card-date-row').className='form-row card-date-row'+(t==='expense'&&currentPayment==='card'?' show':'');
+
 }
 function setPayment(p){ currentPayment=p;
   document.getElementById('btn-card').className='pay-btn'+(p==='card'?' active':'');
   document.getElementById('btn-cash').className='pay-btn'+(p==='cash'?' active':'');
-  document.getElementById('card-date-row').className='form-row card-date-row'+(p==='card'?' show':'');
+
 }
 async function addTransaction(){
   const date=document.getElementById('input-date').value;
@@ -605,7 +601,7 @@ function ledgerTable(data, showDelete=false, showCardDate=false){
     <tfoot><tr class="tfoot-row">
       <td colspan="3" style="text-align:right">합계</td>
       <td class="col-amount">-${fmt(totalExp)}${totalInc>0?' / +'+fmt(totalInc):''}</td>
-      <td class="col-balance">${fmt(lastBal)}</td>
+      <td></td>
       ${cdFoot}${delFoot}
     </tr></tfoot>
   </table></div>`;
@@ -893,8 +889,7 @@ async function saveRecurring(){
 async function init(){
   const today=new Date().toISOString().slice(0,10);
   document.getElementById('input-date').value=today;
-  document.getElementById('input-card-date').value=addMonth(today.slice(0,7))+'-05';
-  document.getElementById('card-date-row').className='form-row card-date-row show';
+
   await loadAll();
   populateSelects(); populateCardSelect();
   const months=getMonths(), cur=today.slice(0,7);
