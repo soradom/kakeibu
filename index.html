@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합지출관리 가계부</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;background:#f2f1ed;color:#1a1a18;min-height:100vh;font-size:14px}
+
+.header{background:#fff;padding:14px 16px 0;border-bottom:1px solid #e4e3de;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.header h1{font-size:15px;font-weight:700}
+.balance-pill{background:#1a1a18;color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+.balance-pill .lbl{opacity:.55;font-weight:400}
+.tabs{display:flex}
+.tab{flex:1;padding:10px 0;font-size:12px;font-weight:500;color:#888781;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18}
+
+.panel{display:none;padding:14px}.panel.active{display:block}
+
+/* ── Form ── */
+.form-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;border:1px solid #e4e3de}
+.form-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;font-weight:600;color:#888781;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.form-row input,.form-row select{width:100%;font-family:inherit;font-size:14px;color:#1a1a18;background:#f8f7f4;border:1px solid #e4e3de;border-radius:8px;padding:9px 12px;outline:none;transition:border-color .15s}
+.form-row input:focus,.form-row select:focus{border-color:#1a1a18;background:#fff}
+.type-btns,.pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type-btn,.pay-btn{padding:9px;border:1.5px solid #e4e3de;border-radius:8px;background:#f8f7f4;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;color:#888781;transition:all .15s}
+.type-btn.active-income{border-color:#0d8a56;background:#e6f5ef;color:#0d8a56}
+.type-btn.active-expense{border-color:#c03030;background:#fdecea;color:#c03030}
+.pay-btn.active{border-color:#1a1a18;background:#1a1a18;color:#fff}
+.submit-btn{width:100%;padding:12px;background:#1a1a18;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+.submit-btn:hover{opacity:.85}.submit-btn:active{transform:scale(.98)}
+.card-date-row{display:none}.card-date-row.show{display:block}
+.hint{font-size:11px;color:#aaa9a4;margin-top:4px}
+
+/* ── Balance card ── */
+.balance-card{background:#1a1a18;color:#fff;border-radius:14px;padding:18px;margin-bottom:14px}
+.bc-label{font-size:11px;opacity:.5;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.bc-val{font-size:30px;font-weight:700;margin-bottom:6px}
+.bc-sub{font-size:11px;opacity:.5}
+
+/* ── Summary ── */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.sc{background:#fff;border-radius:10px;padding:13px;border:1px solid #e4e3de}
+.sc-label{font-size:11px;color:#888781;margin-bottom:4px}
+.sc-val{font-size:17px;font-weight:700}
+.sc-val.income{color:#0d8a56}.sc-val.expense{color:#c03030}
+.sc-val.card-c{color:#2a78d6}.sc-val.cash-c{color:#555450}
+.usable-card{background:#e8f0fb;border-radius:12px;padding:14px;margin-bottom:14px}
+.uc-label{font-size:11px;color:#1d5fa5;font-weight:600;margin-bottom:5px}
+.uc-val{font-size:22px;font-weight:700}
+.uc-sub{font-size:11px;color:#3878c0;margin-top:4px}
+
+/* ── Month selector ── */
+.month-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.month-row label{font-size:12px;color:#888781;white-space:nowrap}
+.month-row select{font-family:inherit;font-size:13px;background:#fff;border:1px solid #d8d7d2;border-radius:8px;padding:6px 10px;cursor:pointer;flex:1}
+
+/* ── Ledger Table ── */
+.ledger-wrap{overflow-x:auto;border-radius:10px;border:1px solid #d0cfc8;margin-bottom:14px}
+table.ledger{width:100%;border-collapse:collapse;font-size:13px;min-width:380px}
+table.ledger thead tr{background:#4472c4}
+table.ledger thead th{color:#fff;font-weight:600;padding:9px 10px;text-align:center;border-right:1px solid #3a62b0;white-space:nowrap}
+table.ledger thead th:last-child{border-right:none}
+table.ledger tbody tr{border-bottom:1px solid #e8e7e2}
+table.ledger tbody tr:last-child{border-bottom:none}
+table.ledger tbody tr:nth-child(even){background:#f0f4ff}
+table.ledger tbody tr:nth-child(odd){background:#fff}
+table.ledger tbody tr:hover{background:#dce8f8}
+table.ledger td{padding:8px 10px;border-right:1px solid #e8e7e2;vertical-align:middle}
+table.ledger td:last-child{border-right:none}
+.col-type{text-align:center;white-space:nowrap;font-size:12px;font-weight:600}
+.col-type.income{color:#0d8a56}.col-type.expense{color:#1a1a18}
+.col-desc{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-amount{text-align:right;white-space:nowrap;font-weight:600;color:#c03030}
+.col-amount.income{color:#0d8a56}
+.col-balance{text-align:right;white-space:nowrap;font-weight:600;color:#1a4a8a}
+.col-action{text-align:center;width:28px;padding:4px}
+.del-btn{background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:2px 5px;border-radius:4px}
+.del-btn:hover{color:#c03030;background:#fdecea}
+.tfoot-row td{background:#e8edf8;font-weight:700;font-size:13px;padding:9px 10px;border-top:2px solid #4472c4}
+.tfoot-row .col-amount{color:#c03030}
+.tfoot-row .col-balance{color:#1a4a8a}
+
+/* ── Recurring tab ── */
+.recur-card{background:#fff;border-radius:12px;border:1px solid #e4e3de;overflow:hidden;margin-bottom:14px}
+.recur-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f0efeb}
+.recur-item:last-child{border-bottom:none}
+.recur-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.recur-icon.income{background:#e6f5ef}
+.recur-icon.expense{background:#f0f4ff}
+.recur-info{flex:1;min-width:0}
+.recur-name{font-size:13px;font-weight:600;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recur-meta{font-size:11px;color:#888781;margin-top:2px}
+.recur-right{text-align:right;flex-shrink:0}
+.recur-amount{font-size:13px;font-weight:700}
+.recur-amount.income{color:#0d8a56}
+.recur-amount.expense{color:#c03030}
+.recur-toggle{position:relative;width:42px;height:24px;flex-shrink:0}
+.recur-toggle input{opacity:0;width:0;height:0;position:absolute}
+.recur-toggle .slider{position:absolute;inset:0;background:#d0cfc8;border-radius:24px;cursor:pointer;transition:.2s}
+.recur-toggle .slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.recur-toggle input:checked+.slider{background:#4472c4}
+.recur-toggle input:checked+.slider:before{transform:translateX(18px)}
+.recur-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px}
+.recur-badge.on{background:#e8f0fb;color:#1d5fa5}
+.recur-badge.off{background:#f0efeb;color:#888781}
+.add-recur-btn{width:100%;padding:10px;background:#f8f7f4;border:1.5px dashed #d0cfc8;border-radius:10px;font-family:inherit;font-size:13px;color:#888781;cursor:pointer;margin-bottom:14px;transition:all .15s}
+.add-recur-btn:hover{border-color:#4472c4;color:#4472c4;background:#e8f0fb}
+
+/* ── Modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-backdrop.hidden{display:none}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:16px}
+.modal-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#888781;line-height:1}
+
+/* ── Card due ── */
+.card-due-big{background:#e8f0fb;border-radius:12px;padding:16px;margin-bottom:14px}
+.cd-label{font-size:11px;color:#1d5fa5;font-weight:600;margin-bottom:6px}
+.cd-val{font-size:26px;font-weight:700;color:#1a4a8a}
+.cd-sub{font-size:11px;color:#3878c0;margin-top:4px}
+.section-title{font-size:11px;font-weight:700;color:#888781;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px}
+.empty{padding:2.5rem;text-align:center;color:#aaa9a4;font-size:13px;background:#fff;border-radius:10px;border:1px solid #e4e3de}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <div style="width:36px;height:36px;border:3px solid #e4e3de;border-top-color:#1a1a18;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:#555">데이터 불러오는 중...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div class="header">
+  <div class="header-top">
+    <h1>💰 통합지출관리</h1>
+    <div class="balance-pill"><span class="lbl">현재잔액</span><span id="header-balance">-</span></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('input')">입력</button>
+    <button class="tab" onclick="showTab('summary')">이달 요약</button>
+    <button class="tab" onclick="showTab('card')">카드 결제</button>
+    <button class="tab" onclick="showTab('history')">거래 내역</button>
+    <button class="tab" onclick="showTab('recurring')">반복 설정</button>
+  </div>
+</div>
+
+<!-- 입력 탭 -->
+<div id="tab-input" class="panel active">
+  <div class="balance-card">
+    <div class="bc-label">현재 잔액</div>
+    <div class="bc-val" id="current-balance-big">-</div>
+    <div class="bc-sub" id="current-balance-date">-</div>
+  </div>
+  <div class="form-card">
+    <div class="form-title">새 거래 입력</div>
+    <div class="form-row">
+      <label>구분</label>
+      <div class="type-btns">
+        <button class="type-btn active-expense" id="btn-expense" onclick="setType('expense')">지출</button>
+        <button class="type-btn" id="btn-income" onclick="setType('income')">수입</button>
+      </div>
+    </div>
+    <div class="form-row" id="pay-method-row">
+      <label>결제 방법</label>
+      <div class="pay-btns">
+        <button class="pay-btn active" id="btn-card" onclick="setPayment('card')">💳 카드</button>
+        <button class="pay-btn" id="btn-cash" onclick="setPayment('cash')">💵 현금</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>날짜</label>
+      <input type="date" id="input-date">
+    </div>
+    <div class="form-row">
+      <label>내역</label>
+      <input type="text" id="input-desc" placeholder="예: 마트, 카페, 외식...">
+    </div>
+    <div class="form-row">
+      <label>금액 (원)</label>
+      <input type="text" id="input-amount" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="form-row card-date-row" id="card-date-row">
+      <label>카드 결제일</label>
+      <input type="date" id="input-card-date">
+      <div class="hint">비워두면 자동으로 다음달 5일로 설정됩니다</div>
+    </div>
+    <button class="submit-btn" onclick="addTransaction()">거래 추가</button>
+  </div>
+</div>
+
+<!-- 요약 탭 -->
+<div id="tab-summary" class="panel">
+  <div class="month-row"><label>조회 월</label><select id="summary-month" onchange="renderSummary()"></select></div>
+  <div id="summary-content"></div>
+</div>
+
+<!-- 카드 결제 탭 -->
+<div id="tab-card" class="panel">
+  <div class="month-row"><label>결제 기준월</label><select id="card-month" onchange="renderCard()"></select></div>
+  <div id="card-content"></div>
+</div>
+
+<!-- 거래 내역 탭 -->
+<div id="tab-history" class="panel">
+  <div class="month-row"><label>조회 월</label><select id="history-month" onchange="renderHistory()"></select></div>
+  <div id="history-content"></div>
+</div>
+
+<!-- 반복 설정 탭 -->
+<div id="tab-recurring" class="panel">
+  <div class="form-card" style="margin-bottom:14px;background:#e8f0fb;border-color:#b8d0f0">
+    <div style="font-size:12px;color:#1d5fa5;line-height:1.6">
+      📅 <strong>반복 거래</strong>는 매월 지정한 날짜에 자동으로 거래가 추가됩니다.<br>
+      앱을 열 때 오늘 날짜를 기준으로 누락된 달의 반복 거래를 한 번에 처리합니다.
+    </div>
+  </div>
+  <button class="add-recur-btn" onclick="openAddRecurModal()">+ 새 반복 거래 추가</button>
+  <div id="recurring-list"></div>
+</div>
+
+<!-- 반복 거래 추가 모달 -->
+<div class="modal-backdrop hidden" id="recur-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAddRecurModal()">✕</button>
+    <div class="modal-title">반복 거래 추가</div>
+    <div class="form-row">
+      <label>구분</label>
+      <div class="type-btns">
+        <button class="type-btn active-expense" id="rm-btn-expense" onclick="setModalType('expense')">지출</button>
+        <button class="type-btn" id="rm-btn-income" onclick="setModalType('income')">수입</button>
+      </div>
+    </div>
+    <div class="form-row" id="rm-pay-row">
+      <label>결제 방법</label>
+      <div class="pay-btns">
+        <button class="pay-btn active" id="rm-btn-card" onclick="setModalPay('card')">💳 카드</button>
+        <button class="pay-btn" id="rm-btn-cash" onclick="setModalPay('cash')">💵 현금</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>내역</label>
+      <input type="text" id="rm-desc" placeholder="예: 넷플릭스, 생활비...">
+    </div>
+    <div class="form-row">
+      <label>금액 (원)</label>
+      <input type="text" id="rm-amount" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="form-row">
+      <label>매월 반복 일 (1~31)</label>
+      <input type="number" id="rm-day" min="1" max="31" placeholder="예: 20 → 매월 20일">
+    </div>
+    <div class="form-row rm-card-date-row" id="rm-card-date-row">
+      <label>카드 결제일 (매월 며칠?)</label>
+      <input type="number" id="rm-card-day" min="1" max="31" placeholder="예: 5 → 다음달 5일">
+      <div class="hint">보통 다음달 5일이면 5 입력</div>
+    </div>
+    <div class="form-row">
+      <label>반복 시작 월 (YYYY-MM)</label>
+      <input type="month" id="rm-start">
+    </div>
+    <div class="form-row">
+      <label>반복 종료 월 (YYYY-MM, 비우면 무기한)</label>
+      <input type="month" id="rm-end">
+    </div>
+    <button class="submit-btn" onclick="saveRecurring()">저장</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── 시드 데이터 ── */
+const SEED=[{"date":"2026-05-24","category":"지출","desc":"KFC","amount":21300,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-25","category":"지출","desc":"트레이더스","amount":149980,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-28","category":"지출","desc":"관리비(현카)","amount":150110,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-29","category":"지출","desc":"메가커피","amount":6400,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-30","category":"지출","desc":"우유3개","amount":18360,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-30","category":"지출","desc":"몽실장난감,간식","amount":17910,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-02","category":"지출","desc":"가마치통닭","amount":28000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-03","category":"지출","desc":"메가커피","amount":5280,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"메가커피","amount":1800,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"진미채","amount":15000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"마늘쫑,무말랭이","amount":8000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"(현금)알배추","amount":2000,"card_date":"","is_cash":true},{"date":"2026-06-07","category":"지출","desc":"멍쓰런","amount":23000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-11","category":"지출","desc":"넷플릭스(현카)","amount":18500,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-12","category":"지출","desc":"고속충전기2, 케이블2","amount":28620,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-13","category":"지출","desc":"쓰레기봉투 10리더 20장","amount":7600,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-15","category":"지출","desc":"키직 신발 1개","amount":176035,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"자동차검사비","amount":23000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"메가커피","amount":5280,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"스시노유끼","amount":40530,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"몽실간식 리얼츄","amount":39800,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"수박","amount":21000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"코스트코","amount":15700,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"코스트코","amount":129080,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-20","category":"지출","desc":"삼천리도시가스자동이체","amount":7290,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-21","category":"지출","desc":"초파리약","amount":12720,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-21","category":"지출","desc":"아이스크림","amount":8000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-22","category":"지출","desc":"(현금)세탁비 바지2개","amount":10000,"card_date":"","is_cash":true},{"date":"2026-06-25","category":"지출","desc":"(현금)회전초밥","amount":68000,"card_date":"","is_cash":true},{"date":"2026-06-25","category":"지출","desc":"(현금)스크린골프","amount":46000,"card_date":"","is_cash":true},{"date":"2026-06-30","category":"지출","desc":"산본우동","amount":21000,"card_date":"2026-08-05","is_cash":false},{"date":"2026-06-22","category":"지출","desc":"SK브로드밴드(현카)","amount":27500,"card_date":"2026-07-05","is_cash":false}];
+
+/* 시드에서 7월 이후(반복 거래로 관리할) 내역은 제거 — 반복 규칙이 대신 생성 */
+const SEED_ONLY = SEED.filter(r => r.date < '2026-07-01');
+
+/* ── 반복 거래 규칙 (시드) ── */
+const RECUR_SEED = [
+  {id:'r1', enabled:true, category:'수입',  desc:'생활비',          amount:3300000, day:20, is_cash:false, card_day:null, start:'2026-07', end:''},
+  {id:'r2', enabled:true, category:'지출',  desc:'(현금)적금+예비비', amount:200000,  day:20, is_cash:true,  card_day:null, start:'2026-07', end:''},
+  {id:'r3', enabled:true, category:'지출',  desc:'(현금)조기상환이자분',amount:1000000,day:20, is_cash:true,  card_day:null, start:'2026-07', end:''},
+  {id:'r4', enabled:true, category:'지출',  desc:'(현금)복지사이트',  amount:500000,  day:20, is_cash:true,  card_day:null, start:'2026-07', end:''},
+  {id:'r5', enabled:true, category:'지출',  desc:'(현금)시댁곗돈',   amount:100000,  day:20, is_cash:true,  card_day:null, start:'2026-07', end:''},
+  {id:'r6', enabled:true, category:'지출',  desc:'넷플릭스(현카)',   amount:18500,   day:11, is_cash:false, card_day:5,    start:'2026-07', end:''},
+  {id:'r7', enabled:true, category:'지출',  desc:'(현금)쿠팡와우',   amount:7890,    day:12, is_cash:true,  card_day:null, start:'2026-07', end:''},
+  {id:'r8', enabled:true, category:'지출',  desc:'SK브로드밴드(현카)',amount:27500,   day:22, is_cash:false, card_day:5,    start:'2026-07', end:''},
+];
+
+const INITIAL_BALANCE = 2367212;
+const API_URL = 'https://script.google.com/macros/s/AKfycbx3kPEbx3mO16UHfrhoX6h8iWMADyL2J4wq95d1AWEMSq3SKe0qKHy4D5vTwSn5-r7fMg/exec';
+const SK_ROWS  = 'kakeibo_rows_v5';
+const SK_RECUR = 'kakeibo_recur_v5';
+
+let rows = [];
+let recurRules = [];
+let currentType = 'expense', currentPayment = 'card';
+let modalType = 'expense', modalPay = 'card';
+
+/* ── API 통신 ── */
+async function apiGet(action) {
+  const res = await fetch(API_URL + '?action=' + action + '&_=' + Date.now());
+  if (!res.ok) throw new Error('API 오류: ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action, ...body })
+  });
+  if (!res.ok) throw new Error('API 오류: ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+/* ── 로딩 표시 ── */
+function showLoading(on) {
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
+
+/* ── 데이터 로드 (앱 시작 시) ── */
+async function loadAll() {
+  showLoading(true);
+  try {
+    const [apiRows, apiRecur] = await Promise.all([
+      apiGet('getRows'),
+      apiGet('getRecur')
+    ]);
+    rows = apiRows || [];
+    recurRules = apiRecur || [];
+
+    // 구글시트가 비어있으면 SEED 데이터 자동 투입
+    if (rows.length === 0) {
+      showToast('⏳ 초기 데이터를 구글시트에 저장 중...');
+      const seedRows = SEED.filter(r => r.date < '2026-07-01')
+        .map((r, i) => ({...r, id:'s'+i, balance:0}));
+      const seedRecur = RECUR_SEED.map(r => ({...r}));
+      await apiPost('initData', { rows: seedRows, rules: seedRecur });
+      rows = seedRows;
+      recurRules = seedRecur;
+      showToast('✓ 초기 데이터 저장 완료!');
+    }
+  } catch(e) {
+    showToast('⚠️ 데이터 불러오기 실패: ' + e.message);
+    rows = [];
+    recurRules = [];
+  }
+  applyRecurring();
+  recalcBalances();
+  showLoading(false);
+}
+
+/* ── 반복 거래 자동 생성 ── */
+function ymd(y,m,d){ return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function ym(y,m){ return y+'-'+String(m).padStart(2,'0'); }
+function addOneMonth(ym_str){
+  const [y,m]=ym_str.split('-').map(Number);
+  return m===12 ? ym(y+1,1) : ym(y,m+1);
+}
+function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+
+function applyRecurring(){
+  const today = new Date().toISOString().slice(0,10);
+  const todayYM = today.slice(0,7);
+  // 카드 결제 탭 표시를 위해 6개월 앞까지 행을 생성하되,
+  // 오늘 이후 행에는 is_future=true 플래그를 달아 잔액 계산에서 제외
+  let futureYM = todayYM;
+  for(let i=0;i<6;i++) futureYM = addOneMonth(futureYM);
+
+  recurRules.filter(r=>r.enabled).forEach(rule=>{
+    let cursor = rule.start;
+    const endYM = rule.end && rule.end < futureYM ? rule.end : futureYM;
+
+    while(cursor <= endYM){
+      const [cy, cm] = cursor.split('-').map(Number);
+      const maxDay = daysInMonth(cy, cm);
+      const day = Math.min(rule.day, maxDay);
+      const txDate = ymd(cy, cm, day);
+
+      // recurId 기준 또는 같은 날짜+내역 기준으로 중복 체크 (시드 데이터와 충돌 방지)
+      const exists = rows.some(r =>
+        (r.recurId === rule.id && r.date === txDate) ||
+        (r.date === txDate && r.desc === rule.desc && r.category === rule.category)
+      );
+      if(!exists){
+        let cardDate = '';
+        if(!rule.is_cash && rule.card_day){
+          const nextMo = addOneMonth(cursor);
+          cardDate = nextMo + '-' + String(rule.card_day).padStart(2,'0');
+        }
+        rows.push({
+          id: rule.id+'_'+txDate,
+          recurId: rule.id,
+          date: txDate,
+          category: rule.category,
+          desc: rule.desc,
+          amount: rule.amount,
+          balance: 0,
+          card_date: cardDate,
+          is_cash: rule.is_cash,
+          is_future: txDate > today  // 오늘 이후는 미래 예정 행
+        });
+      }
+      cursor = addOneMonth(cursor);
+    }
+  });
+}
+
+/* ── Balance ── */
+function recalcBalances(){
+  rows.sort((a,b)=>a.date.localeCompare(b.date)||(a._seq||0)-(b._seq||0));
+  let bal = INITIAL_BALANCE;
+  rows.forEach(r=>{
+    if(r.is_future){ r.balance = null; return; }  // 미래 예정 행은 잔액 계산 제외
+    bal += r.category==='수입'?r.amount:-r.amount;
+    r.balance = bal;
+  });
+}
+function getCurrentBalance(){
+  // is_future가 아닌 행 중 마지막 잔액
+  const real = rows.filter(r=>!r.is_future);
+  return real.length ? real[real.length-1].balance : INITIAL_BALANCE;
+}
+
+/* ── Helpers ── */
+const fmt = v=>'₩'+v.toLocaleString('ko-KR');
+function addMonth(ym_str){ const[y,m]=ym_str.split('-').map(Number); return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0'); }
+function getMonths(){ return[...new Set(rows.filter(r=>!r.is_future).map(r=>r.date.slice(0,7)))].sort(); }
+function getMonthRows(ym){ return rows.filter(r=>r.date.startsWith(ym) && !r.is_future); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+
+/* ── Tabs ── */
+function showTab(name){
+  const names=['input','summary','card','history','recurring'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
+  if(name==='summary') renderSummary();
+  if(name==='card'){ populateCardSelect(); renderCard(); }
+  if(name==='history') renderHistory();
+  if(name==='recurring') renderRecurring();
+}
+
+/* ── Input form ── */
+function setType(t){ currentType=t;
+  document.getElementById('btn-expense').className='type-btn'+(t==='expense'?' active-expense':'');
+  document.getElementById('btn-income').className='type-btn'+(t==='income'?' active-income':'');
+  document.getElementById('pay-method-row').style.display=t==='income'?'none':'block';
+  document.getElementById('card-date-row').className='form-row card-date-row'+(t==='expense'&&currentPayment==='card'?' show':'');
+}
+function setPayment(p){ currentPayment=p;
+  document.getElementById('btn-card').className='pay-btn'+(p==='card'?' active':'');
+  document.getElementById('btn-cash').className='pay-btn'+(p==='cash'?' active':'');
+  document.getElementById('card-date-row').className='form-row card-date-row'+(p==='card'?' show':'');
+}
+async function addTransaction(){
+  const date=document.getElementById('input-date').value;
+  const desc=document.getElementById('input-desc').value.trim();
+  const amount=getRawAmount('input-amount');
+  let cardDate=document.getElementById('input-card-date').value;
+  if(!date){showToast('날짜를 입력해주세요');return;}
+  if(!desc){showToast('내역을 입력해주세요');return;}
+  if(!amount||amount<=0){showToast('금액을 입력해주세요');return;}
+  const isCash=currentType==='expense'&&currentPayment==='cash';
+  const isIncome=currentType==='income';
+  if(!isCash&&!isIncome&&!cardDate) cardDate=addMonth(date.slice(0,7))+'-05';
+  const newRow={
+    id:Date.now().toString(36), _seq:rows.length, date,
+    category:isIncome?'수입':'지출',
+    desc:isCash?'(현금)'+desc:desc,
+    amount, balance:0, card_date:cardDate||'', is_cash:isCash
+  };
+  try{
+    await apiPost('addRow', newRow);
+    rows.push(newRow);
+    recalcBalances();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    document.getElementById('input-desc').value='';
+    document.getElementById('input-amount').value=''; document.getElementById('input-amount').dataset.raw='';
+    document.getElementById('input-card-date').value='';
+    showToast('✓ 거래가 추가되었습니다');
+  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+}
+
+/* ── Header & Input balance ── */
+function updateHeaderBalance(){ document.getElementById('header-balance').textContent=fmt(getCurrentBalance()); }
+function updateInputBalance(){
+  document.getElementById('current-balance-big').textContent=fmt(getCurrentBalance());
+  const last=rows[rows.length-1];
+  document.getElementById('current-balance-date').textContent=last?'최근 거래: '+last.date+' · '+last.desc:'-';
+}
+
+/* ── Selects ── */
+function populateSelects(){
+  const months=getMonths();
+  ['summary-month','history-month'].forEach(id=>{
+    const el=document.getElementById(id), prev=el.value;
+    el.innerHTML='';
+    months.forEach(m=>{ const o=document.createElement('option'); o.value=m;
+      const[y,mo]=m.split('-'); o.textContent=y+'년 '+parseInt(mo)+'월'; el.appendChild(o); });
+    el.value=months.includes(prev)?prev:(months[months.length-1]||'');
+  });
+}
+
+/* ── Ledger Table ── */
+function ledgerTable(data, showDelete=false, showCardDate=false){
+  if(!data.length) return '<div class="empty">내역이 없습니다</div>';
+  const totalExp=data.filter(r=>r.category==='지출').reduce((s,r)=>s+r.amount,0);
+  const totalInc=data.filter(r=>r.category==='수입').reduce((s,r)=>s+r.amount,0);
+  const lastBal=data[data.length-1]?.balance??0;
+  const cdCol=showCardDate?'<th>카드결제일</th>':'';
+  const cdFoot=showCardDate?'<td></td>':'';
+  const delHead=showDelete?'<th style="width:28px"></th>':'';
+  const delFoot=showDelete?'<td></td>':'';
+  const body=data.map(r=>{
+    const isInc=r.category==='수입';
+    const ri=r.recurId?'🔁 ':'';
+    const cd=showCardDate?`<td style="font-size:11px;color:#3878c0;text-align:center;white-space:nowrap">${r.card_date||'-'}</td>`:'';
+    const del=showDelete?`<td class="col-action"><button class="del-btn" data-id="${r.id}">×</button></td>`:'';
+    return `<tr>
+      <td class="col-type ${isInc?'income':'expense'}">${r.category}</td>
+      <td class="col-desc">${ri}${r.desc}</td>
+      <td class="col-amount ${isInc?'income':''}">${isInc?'+':'-'}${fmt(r.amount)}</td>
+      <td class="col-balance">${r.balance!=null?fmt(r.balance):"-"}</td>
+      ${cd}${del}</tr>`;
+  }).join('');
+  return `<div class="ledger-wrap"><table class="ledger">
+    <thead><tr><th>구분</th><th>내역</th><th>금액</th><th>잔액</th>${cdCol}${delHead}</tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr class="tfoot-row">
+      <td colspan="2" style="text-align:right">합계</td>
+      <td class="col-amount">-${fmt(totalExp)}${totalInc>0?' / +'+fmt(totalInc):''}</td>
+      <td class="col-balance">${fmt(lastBal)}</td>
+      ${cdFoot}${delFoot}
+    </tr></tfoot>
+  </table></div>`;
+}
+
+/* ── Summary ── */
+function renderSummary(){
+  const ym_=document.getElementById('summary-month').value; if(!ym_)return;
+  const mr=getMonthRows(ym_);
+  const income=mr.filter(r=>r.category==='수입').reduce((s,r)=>s+r.amount,0);
+  const totalExp=mr.filter(r=>r.category==='지출').reduce((s,r)=>s+r.amount,0);
+  const cashExp=mr.filter(r=>r.category==='지출'&&r.is_cash).reduce((s,r)=>s+r.amount,0);
+  const cardExp=totalExp-cashExp;
+  const sorted=[...mr].filter(r=>!r.is_future).sort((a,b)=>a.date.localeCompare(b.date));
+  const curBal=sorted[sorted.length-1]?.balance??getCurrentBalance();
+  const nextMo=addMonth(ym_);
+  const nextCardDue=rows.filter(r=>r.card_date===nextMo+'-05').reduce((s,r)=>s+r.amount,0);
+  const usable=curBal-nextCardDue;
+  const thisCardDue=rows.filter(r=>r.card_date===ym_+'-05').reduce((s,r)=>s+r.amount,0);
+  const pct=income>0?Math.min(totalExp/income*100,100):0;
+  const over=income>0&&totalExp>income;
+  let html=`<div class="sg">
+    <div class="sc"><div class="sc-label">수입</div><div class="sc-val income">${income>0?fmt(income):'-'}</div></div>
+    <div class="sc"><div class="sc-label">지출 합계</div><div class="sc-val expense">${fmt(totalExp)}</div></div>
+    <div class="sc"><div class="sc-label">카드 사용</div><div class="sc-val card-c">${fmt(cardExp)}</div></div>
+    <div class="sc"><div class="sc-label">현금 사용</div><div class="sc-val cash-c">${fmt(cashExp)}</div></div>
+  </div>`;
+  if(income>0) html+=`<div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px">
+      <span>수입 대비 지출</span><span style="font-weight:700;color:${over?'#c03030':'#0d8a56'}">${Math.round(totalExp/income*100)}%</span>
+    </div>
+    <div style="background:#e8e7e2;border-radius:4px;height:8px;overflow:hidden">
+      <div style="height:100%;border-radius:4px;background:${over?'#c03030':'#2a78d6'};width:${pct}%"></div>
+    </div></div>`;
+  html+=`<div class="usable-card">
+    <div class="uc-label">💰 사용 가능 잔액</div>
+    <div class="uc-val" style="color:${usable<0?'#c03030':'#1a4a8a'}">${fmt(usable)}</div>
+    <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
+  </div>`;
+  if(thisCardDue>0) html+=`<div class="sc" style="margin-bottom:14px">
+    <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
+    <div class="sc-val expense" style="font-size:16px">${fmt(thisCardDue)}</div>
+  </div>`;
+  if(sorted.length) html+=`<div class="section-title">이달 거래 내역</div>`+ledgerTable(sorted);
+  document.getElementById('summary-content').innerHTML=html;
+}
+
+/* ── Card ── */
+function populateCardSelect(){
+  const el = document.getElementById('card-month');
+  if(!el) return;
+  const prev = el.value;
+  // 카드결제일이 있는 모든 지출 행에서 고유한 결제월 목록 추출 (미래 예정 포함)
+  const cardMonths = [...new Set(
+    rows.filter(r=>r.card_date&&r.category==='지출').map(r=>r.card_date.slice(0,7))
+  )].sort();
+  el.innerHTML = '';
+  cardMonths.forEach(m=>{
+    const o = document.createElement('option'); o.value = m;
+    const[y,mo]=m.split('-'); o.textContent=y+'년 '+parseInt(mo)+'월 5일 결제';
+    el.appendChild(o);
+  });
+  // 이번달 또는 가장 가까운 미래 결제월을 기본값으로
+  const today = new Date().toISOString().slice(0,10).slice(0,7);
+  const defaultM = cardMonths.find(m=>m>=today) || cardMonths[cardMonths.length-1] || '';
+  el.value = cardMonths.includes(prev) ? prev : defaultM;
+}
+
+function renderCard(){
+  const ym_ = document.getElementById('card-month')?.value; if(!ym_)return;
+  const today = new Date().toISOString().slice(0,10);
+  const [y,mo] = ym_.split('-');
+  const cpd = ym_+'-05';
+  const items = rows.filter(r=>r.card_date===cpd&&r.category==='지출');
+  const total = items.reduce((s,r)=>s+r.amount,0);
+
+  const isPast = cpd < today;
+  const isToday = cpd === today;
+  const isFuture = cpd > today;
+  const badge = isPast
+    ? `<span style="font-size:11px;background:#e8e7e2;color:#888781;border-radius:10px;padding:3px 10px">결제 완료</span>`
+    : isToday
+    ? `<span style="font-size:11px;background:#fdecea;color:#c03030;border-radius:10px;padding:3px 10px">오늘 결제</span>`
+    : `<span style="font-size:11px;background:#e6f5ef;color:#0d8a56;border-radius:10px;padding:3px 10px">결제 예정</span>`;
+
+  let html = `<div class="card-due-big">
+    <div class="cd-label" style="display:flex;align-items:center;gap:8px">
+      📅 ${y}년 ${parseInt(mo)}월 5일 카드 결제 ${badge}
+    </div>
+    <div class="cd-val">${fmt(total)}</div>
+    <div class="cd-sub">총 ${items.length}건 합산</div>
+  </div>`;
+
+  if(items.length){
+    html += `<div class="section-title">결제 내역</div>
+    <div class="ledger-wrap"><table class="ledger">
+      <thead><tr><th>사용일</th><th>내역</th><th>금액</th></tr></thead>
+      <tbody>${items.map(r=>`<tr>
+        <td style="text-align:center;font-size:12px;white-space:nowrap">${r.date}</td>
+        <td class="col-desc">${r.recurId?'🔁 ':''}${r.desc}</td>
+        <td class="col-amount">${fmt(r.amount)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr class="tfoot-row">
+        <td colspan="2" style="text-align:right">합계</td>
+        <td class="col-amount">${fmt(total)}</td>
+      </tr></tfoot>
+    </table></div>`;
+  } else {
+    html += `<div class="empty">해당 월에 카드 결제 내역이 없습니다</div>`;
+  }
+  document.getElementById('card-content').innerHTML = html;
+}
+
+/* ── History ── */
+function renderHistory(){
+  const ym_=document.getElementById('history-month').value; if(!ym_)return;
+  const mr=[...getMonthRows(ym_)].sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('history-content').innerHTML=ledgerTable(mr,true,true);
+}
+async function deleteRow(id){
+  try{
+    await apiPost('deleteRow', {id});
+    rows=rows.filter(r=>r.id!==id);
+    recalcBalances();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); renderHistory();
+    showToast('삭제되었습니다');
+  }catch(e){
+    showToast('⚠️ 삭제 실패: '+e.message);
+  }
+}
+
+// 이벤트 위임: 거래 삭제 (data-id), 반복규칙 삭제 (data-rid), 토글 (recur-chk)
+document.addEventListener('click', function(e){
+  // 거래내역 삭제
+  const delBtn = e.target.closest('.del-btn[data-id]');
+  if(delBtn){
+    const id = delBtn.getAttribute('data-id');
+    if(delBtn.dataset.confirm === '1'){
+      deleteRow(id);
+    } else {
+      delBtn.dataset.confirm = '1';
+      delBtn.textContent = '확인';
+      delBtn.style.color = '#c03030';
+      delBtn.style.fontWeight = '700';
+      setTimeout(()=>{ if(delBtn.dataset.confirm) { delBtn.dataset.confirm=''; delBtn.textContent='×'; delBtn.style.color=''; delBtn.style.fontWeight=''; } }, 2500);
+    }
+    return;
+  }
+  // 반복규칙 삭제
+  const recurDelBtn = e.target.closest('.del-btn[data-rid]');
+  if(recurDelBtn){
+    const rid = recurDelBtn.getAttribute('data-rid');
+    if(recurDelBtn.dataset.confirm === '1'){
+      deleteRecur(rid);
+    } else {
+      recurDelBtn.dataset.confirm = '1';
+      recurDelBtn.textContent = '확인';
+      recurDelBtn.style.color = '#c03030';
+      recurDelBtn.style.fontWeight = '700';
+      setTimeout(()=>{ if(recurDelBtn.dataset.confirm) { recurDelBtn.dataset.confirm=''; recurDelBtn.textContent='×'; recurDelBtn.style.color=''; recurDelBtn.style.fontWeight=''; } }, 2500);
+    }
+    return;
+  }
+});
+
+// 반복규칙 토글 이벤트 위임
+document.addEventListener('change', function(e){
+  const chk = e.target.closest('.recur-chk');
+  if(!chk) return;
+  const rid = chk.getAttribute('data-rid');
+  toggleRecur(rid, chk.checked);
+});
+
+/* ── Recurring tab ── */
+function renderRecurring(){
+  const el=document.getElementById('recurring-list');
+  if(!recurRules.length){ el.innerHTML='<div class="empty">등록된 반복 거래가 없습니다</div>'; return; }
+  const icons={수입:'💰', 지출:'💳'};
+  el.innerHTML='<div class="recur-card">'+recurRules.map(r=>{
+    const isInc=r.category==='수입';
+    const payLabel=r.is_cash?'현금':(r.card_day?`카드(다음달 ${r.card_day}일 결제)`:'카드');
+    const endLabel=r.end?`~${r.end}`:'무기한';
+    return `<div class="recur-item">
+      <div class="recur-icon ${isInc?'income':'expense'}">${isInc?'💰':'💳'}</div>
+      <div class="recur-info">
+        <div class="recur-name">${r.desc}</div>
+        <div class="recur-meta">매월 ${r.day}일 · ${payLabel} · ${r.start} ${endLabel}</div>
+      </div>
+      <div class="recur-right">
+        <div class="recur-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
+        <div style="font-size:10px;color:#aaa;margin-top:3px">
+          <span class="recur-badge ${r.enabled?'on':'off'}">${r.enabled?'활성':'중지'}</span>
+        </div>
+      </div>
+      <label class="recur-toggle" title="${r.enabled?'클릭하여 중지':'클릭하여 활성화'}">
+        <input type="checkbox" ${r.enabled?'checked':''} data-rid="${r.id}" class="recur-chk">
+        <span class="slider"></span>
+      </label>
+      <button class="del-btn" data-rid="${r.id}" title="삭제">×</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+async function toggleRecur(id, enabled){
+  const r=recurRules.find(r=>r.id===id);
+  if(!r) return;
+  r.enabled=enabled;
+  try{
+    await apiPost('saveRecur',{rules:recurRules});
+    renderRecurring();
+    showToast(enabled?'✓ 반복 거래가 활성화되었습니다':'반복 거래가 중지되었습니다');
+  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+}
+
+async function deleteRecur(id){
+  recurRules=recurRules.filter(r=>r.id!==id);
+  try{
+    await apiPost('saveRecur',{rules:recurRules});
+    renderRecurring();
+    showToast('삭제되었습니다');
+  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+}
+
+/* ── Add recurring modal ── */
+function openAddRecurModal(){
+  modalType='expense'; modalPay='card';
+  document.getElementById('rm-btn-expense').className='type-btn active-expense';
+  document.getElementById('rm-btn-income').className='type-btn';
+  document.getElementById('rm-btn-card').className='pay-btn active';
+  document.getElementById('rm-btn-cash').className='pay-btn';
+  document.getElementById('rm-pay-row').style.display='block';
+  document.getElementById('rm-card-date-row').style.display='block';
+  document.getElementById('rm-desc').value='';
+  document.getElementById('rm-amount').value=''; document.getElementById('rm-amount').dataset.raw='';
+  document.getElementById('rm-day').value='';
+  document.getElementById('rm-card-day').value='5';
+  const today=new Date().toISOString().slice(0,7);
+  document.getElementById('rm-start').value=today;
+  document.getElementById('rm-end').value='';
+  document.getElementById('recur-modal').classList.remove('hidden');
+}
+function closeAddRecurModal(){ document.getElementById('recur-modal').classList.add('hidden'); }
+function setModalType(t){ modalType=t;
+  document.getElementById('rm-btn-expense').className='type-btn'+(t==='expense'?' active-expense':'');
+  document.getElementById('rm-btn-income').className='type-btn'+(t==='income'?' active-income':'');
+  document.getElementById('rm-pay-row').style.display=t==='income'?'none':'block';
+  document.getElementById('rm-card-date-row').style.display=(t==='expense'&&modalPay==='card')?'block':'none';
+}
+function setModalPay(p){ modalPay=p;
+  document.getElementById('rm-btn-card').className='pay-btn'+(p==='card'?' active':'');
+  document.getElementById('rm-btn-cash').className='pay-btn'+(p==='cash'?' active':'');
+  document.getElementById('rm-card-date-row').style.display=p==='card'?'block':'none';
+}
+async function saveRecurring(){
+  const desc=document.getElementById('rm-desc').value.trim();
+  const amount=getRawAmount('rm-amount');
+  const day=parseInt(document.getElementById('rm-day').value);
+  const start=document.getElementById('rm-start').value;
+  const end=document.getElementById('rm-end').value;
+  const cardDayVal=document.getElementById('rm-card-day').value;
+  if(!desc){showToast('내역을 입력해주세요');return;}
+  if(!amount||amount<=0){showToast('금액을 입력해주세요');return;}
+  if(!day||day<1||day>31){showToast('반복 일을 1~31 사이로 입력해주세요');return;}
+  if(!start){showToast('시작 월을 입력해주세요');return;}
+  const isCash=modalType==='expense'&&modalPay==='cash';
+  const isIncome=modalType==='income';
+  const cardDay=(!isCash&&!isIncome&&cardDayVal)?parseInt(cardDayVal):null;
+  const newRule={
+    id:'r'+Date.now(), enabled:true,
+    category:isIncome?'수입':'지출',
+    desc:isCash?'(현금)'+desc:desc,
+    amount, day, is_cash:isCash, card_day:cardDay, start, end
+  };
+  recurRules.push(newRule);
+  try{
+    await apiPost('saveRecur',{rules:recurRules});
+    applyRecurring(); recalcBalances();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    closeAddRecurModal(); renderRecurring();
+    showToast('✓ 반복 거래가 등록되었습니다');
+  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+}
+
+/* ── Init ── */
+async function init(){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('input-date').value=today;
+  document.getElementById('input-card-date').value=addMonth(today.slice(0,7))+'-05';
+  document.getElementById('card-date-row').className='form-row card-date-row show';
+  await loadAll();
+  populateSelects(); populateCardSelect();
+  const months=getMonths(), cur=today.slice(0,7);
+  const def=months.includes(cur)?cur:(months[months.length-1]||'');
+  ['summary-month','history-month'].forEach(id=>{ if(def) document.getElementById(id).value=def; });
+  updateHeaderBalance(); updateInputBalance();
+}
+init();
+
+/* ── 금액 입력 콤마 포맷 ── */
+function formatAmountInput(el){
+  const raw = el.value.replace(/[^0-9]/g, '');
+  el.value = raw ? Number(raw).toLocaleString('ko-KR') : '';
+  el.dataset.raw = raw;
+}
+function getRawAmount(id){
+  const el = document.getElementById(id);
+  return parseInt((el.dataset.raw || el.value.replace(/[^0-9]/g,''))) || 0;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  ['input-amount','rm-amount'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', function(){
+      const pos = this.selectionStart;
+      const prevLen = this.value.length;
+      formatAmountInput(this);
+      // 커서 위치 보정
+      const diff = this.value.length - prevLen;
+      this.setSelectionRange(pos+diff, pos+diff);
+    });
+    el.addEventListener('keydown', function(e){
+      // 숫자, 백스페이스, 방향키, 탭, Delete만 허용
+      if(!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key) && !e.metaKey && !e.ctrlKey){
+        e.preventDefault();
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
