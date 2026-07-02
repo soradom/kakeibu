@@ -84,6 +84,8 @@ table.ledger td:last-child{border-right:none}
 .col-action{text-align:center;width:28px;padding:4px}
 .del-btn{background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:2px 5px;border-radius:4px}
 .del-btn:hover{color:#c03030;background:#fdecea}
+.edit-btn{background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;padding:2px 5px;border-radius:4px}
+.edit-btn:hover{color:#4472c4;background:#e8f0fb}
 .tfoot-row td{background:#e8edf8;font-weight:700;font-size:13px;padding:9px 10px;border-top:2px solid #4472c4}
 .tfoot-row .col-amount{color:#c03030}
 .tfoot-row .col-balance{color:#1a4a8a}
@@ -257,7 +259,7 @@ table.ledger td:last-child{border-right:none}
 <div class="modal-backdrop hidden" id="recur-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeAddRecurModal()">✕</button>
-    <div class="modal-title">반복 거래 추가</div>
+    <div class="modal-title" id="recur-modal-title">반복 거래 추가</div>
     <div class="form-row">
       <label>구분</label>
       <div class="type-btns">
@@ -750,6 +752,12 @@ document.addEventListener('click', function(e){
     }
     return;
   }
+  // 반복규칙 수정
+  const editBtn = e.target.closest('.edit-btn[data-eid]');
+  if(editBtn){
+    openEditRecurModal(editBtn.getAttribute('data-eid'));
+    return;
+  }
   // 반복규칙 삭제
   const recurDelBtn = e.target.closest('.del-btn[data-rid]');
   if(recurDelBtn){
@@ -800,6 +808,7 @@ function renderRecurring(){
         <input type="checkbox" ${r.enabled?'checked':''} data-rid="${r.id}" class="recur-chk">
         <span class="slider"></span>
       </label>
+      <button class="edit-btn" data-eid="${r.id}" title="수정">✎</button>
       <button class="del-btn" data-rid="${r.id}" title="삭제">×</button>
     </div>`;
   }).join('')+'</div>';
@@ -825,8 +834,12 @@ async function deleteRecur(id){
   }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
 }
 
-/* ── Add recurring modal ── */
+/* ── Add/Edit recurring modal ── */
+let editingRecurId = null;
+
 function openAddRecurModal(){
+  editingRecurId = null;
+  document.getElementById('recur-modal-title').textContent = '반복 거래 추가';
   modalType='expense'; modalPay='card';
   document.getElementById('rm-btn-expense').className='type-btn active-expense';
   document.getElementById('rm-btn-income').className='type-btn';
@@ -843,7 +856,33 @@ function openAddRecurModal(){
   document.getElementById('rm-end').value='';
   document.getElementById('recur-modal').classList.remove('hidden');
 }
-function closeAddRecurModal(){ document.getElementById('recur-modal').classList.add('hidden'); }
+
+function openEditRecurModal(id){
+  const r = recurRules.find(x=>x.id===id);
+  if(!r) return;
+  editingRecurId = id;
+  document.getElementById('recur-modal-title').textContent = '반복 거래 수정';
+  modalType = r.category==='수입' ? 'income' : 'expense';
+  modalPay = r.is_cash ? 'cash' : 'card';
+  document.getElementById('rm-btn-expense').className='type-btn'+(modalType==='expense'?' active-expense':'');
+  document.getElementById('rm-btn-income').className='type-btn'+(modalType==='income'?' active-income':'');
+  document.getElementById('rm-btn-card').className='pay-btn'+(modalPay==='card'?' active':'');
+  document.getElementById('rm-btn-cash').className='pay-btn'+(modalPay==='cash'?' active':'');
+  document.getElementById('rm-pay-row').style.display = modalType==='income' ? 'none' : 'block';
+  document.getElementById('rm-card-date-row').style.display = (modalType==='expense'&&modalPay==='card') ? 'block' : 'none';
+  let descVal = r.desc;
+  if(r.is_cash && descVal.startsWith('(현금)')) descVal = descVal.slice(4);
+  document.getElementById('rm-desc').value = descVal;
+  document.getElementById('rm-amount').value = r.amount.toLocaleString('ko-KR');
+  document.getElementById('rm-amount').dataset.raw = String(r.amount);
+  document.getElementById('rm-day').value = r.day;
+  document.getElementById('rm-card-day').value = r.card_day || '5';
+  document.getElementById('rm-start').value = r.start;
+  document.getElementById('rm-end').value = r.end || '';
+  document.getElementById('recur-modal').classList.remove('hidden');
+}
+
+function closeAddRecurModal(){ document.getElementById('recur-modal').classList.add('hidden'); editingRecurId = null; }
 function setModalType(t){ modalType=t;
   document.getElementById('rm-btn-expense').className='type-btn'+(t==='expense'?' active-expense':'');
   document.getElementById('rm-btn-income').className='type-btn'+(t==='income'?' active-income':'');
@@ -869,19 +908,27 @@ async function saveRecurring(){
   const isCash=modalType==='expense'&&modalPay==='cash';
   const isIncome=modalType==='income';
   const cardDay=(!isCash&&!isIncome&&cardDayVal)?parseInt(cardDayVal):null;
-  const newRule={
-    id:'r'+Date.now(), enabled:true,
+  const ruleData={
     category:isIncome?'수입':'지출',
     desc:isCash?'(현금)'+desc:desc,
     amount, day, is_cash:isCash, card_day:cardDay, start, end
   };
-  recurRules.push(newRule);
+  if(editingRecurId){
+    const idx=recurRules.findIndex(r=>r.id===editingRecurId);
+    if(idx===-1){ showToast('수정할 항목을 찾을 수 없습니다'); return; }
+    recurRules[idx]={...recurRules[idx], ...ruleData};
+    // 이 규칙에서 생성된 기존 가상 거래는 지우고 새 값으로 다시 생성
+    rows=rows.filter(r=>r.recurId!==editingRecurId);
+  } else {
+    recurRules.push({ id:'r'+Date.now(), enabled:true, ...ruleData });
+  }
   try{
     await apiPost('saveRecur',{rules:recurRules});
     applyRecurring(); recalcBalances();
     populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    const wasEditing=!!editingRecurId;
     closeAddRecurModal(); renderRecurring();
-    showToast('✓ 반복 거래가 등록되었습니다');
+    showToast(wasEditing?'✓ 반복 거래가 수정되었습니다':'✓ 반복 거래가 등록되었습니다');
   }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
 }
 
