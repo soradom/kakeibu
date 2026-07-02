@@ -141,10 +141,16 @@ table.ledger td:last-child{border-right:none}
 .pw-btn{width:100%;padding:13px;background:#1a1a18;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .pw-btn:hover{opacity:.85}
 .pw-error{font-size:12px;color:#c03030;margin-top:8px;min-height:18px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <div style="width:36px;height:36px;border:3px solid #e4e3de;border-top-color:#1a1a18;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:13px;color:#555">데이터 불러오는 중...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <div id="pw-screen" class="pw-screen">
   <div class="pw-box">
     <div class="pw-logo">💰</div>
@@ -156,11 +162,10 @@ table.ledger td:last-child{border-right:none}
     <div class="pw-error" id="pw-error"></div>
   </div>
 </div>
-<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+<div id="loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:400;flex-direction:column;align-items:center;justify-content:center;gap:12px">
   <div style="width:36px;height:36px;border:3px solid #e4e3de;border-top-color:#1a1a18;border-radius:50%;animation:spin 0.8s linear infinite"></div>
   <div style="font-size:13px;color:#555">데이터 불러오는 중...</div>
 </div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <div class="header">
   <div class="header-top">
     <h1>💰 통합지출관리</h1>
@@ -300,15 +305,17 @@ table.ledger td:last-child{border-right:none}
 <div class="toast" id="toast"></div>
 
 <script>
-/* ── 비밀번호 ── */
 
+/* ── 비밀번호 인증 ── */
 const PW_SESSION_KEY = 'kakeibo_auth';
 
 async function checkPassword(){
-  const input = document.getElementById('pw-input').value;
+  const input = document.getElementById('pw-input').value.trim();
   const errEl = document.getElementById('pw-error');
-  try {
-    const res = await fetch(API_URL + '?action=login&pw=' + encodeURIComponent(input));
+  if(!input){ errEl.textContent='비밀번호를 입력하세요'; return; }
+  errEl.textContent = '확인 중...';
+  try{
+    const res = await fetch(API_URL + '?action=login&pw=' + encodeURIComponent(input) + '&_=' + Date.now());
     const data = await res.json();
     if(data.success){
       sessionStorage.setItem(PW_SESSION_KEY, input);
@@ -317,13 +324,40 @@ async function checkPassword(){
     } else {
       errEl.textContent = '비밀번호가 틀렸습니다';
       document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
       setTimeout(()=>errEl.textContent='', 2000);
     }
-  } catch(e) {
-    errEl.textContent = '서버 연결 오류';
+  }catch(e){
+    errEl.textContent = '서버 연결 오류: ' + e.message;
   }
 }
 
+/* ── API 통신 ── */
+async function apiGet(action){
+  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
+  const res = await fetch(API_URL + '?action=' + action + '&pw=' + encodeURIComponent(pw) + '&_=' + Date.now());
+  if(!res.ok) throw new Error('API 오류: ' + res.status);
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, body){
+  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({action, pw, ...body})
+  });
+  if(!res.ok) throw new Error('API 오류: ' + res.status);
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+
+/* ── 로딩 ── */
+function showLoading(on){
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
 /* ── 시드 데이터 ── */
 const SEED=[{"date":"2026-05-24","category":"지출","desc":"KFC","amount":21300,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-25","category":"지출","desc":"트레이더스","amount":149980,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-28","category":"지출","desc":"관리비(현카)","amount":150110,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-29","category":"지출","desc":"메가커피","amount":6400,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-30","category":"지출","desc":"우유3개","amount":18360,"card_date":"2026-07-05","is_cash":false},{"date":"2026-05-30","category":"지출","desc":"몽실장난감,간식","amount":17910,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-02","category":"지출","desc":"가마치통닭","amount":28000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-03","category":"지출","desc":"메가커피","amount":5280,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"메가커피","amount":1800,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"진미채","amount":15000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"마늘쫑,무말랭이","amount":8000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-06","category":"지출","desc":"(현금)알배추","amount":2000,"card_date":"","is_cash":true},{"date":"2026-06-07","category":"지출","desc":"멍쓰런","amount":23000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-11","category":"지출","desc":"넷플릭스(현카)","amount":18500,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-12","category":"지출","desc":"고속충전기2, 케이블2","amount":28620,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-13","category":"지출","desc":"쓰레기봉투 10리더 20장","amount":7600,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-15","category":"지출","desc":"키직 신발 1개","amount":176035,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"자동차검사비","amount":23000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"메가커피","amount":5280,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"스시노유끼","amount":40530,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-16","category":"지출","desc":"몽실간식 리얼츄","amount":39800,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"수박","amount":21000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"코스트코","amount":15700,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-19","category":"지출","desc":"코스트코","amount":129080,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-20","category":"지출","desc":"삼천리도시가스자동이체","amount":7290,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-21","category":"지출","desc":"초파리약","amount":12720,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-21","category":"지출","desc":"아이스크림","amount":8000,"card_date":"2026-07-05","is_cash":false},{"date":"2026-06-22","category":"지출","desc":"(현금)세탁비 바지2개","amount":10000,"card_date":"","is_cash":true},{"date":"2026-06-25","category":"지출","desc":"(현금)회전초밥","amount":68000,"card_date":"","is_cash":true},{"date":"2026-06-25","category":"지출","desc":"(현금)스크린골프","amount":46000,"card_date":"","is_cash":true},{"date":"2026-06-30","category":"지출","desc":"산본우동","amount":21000,"card_date":"2026-08-05","is_cash":false},{"date":"2026-06-22","category":"지출","desc":"SK브로드밴드(현카)","amount":27500,"card_date":"2026-07-05","is_cash":false}];
 
@@ -352,32 +386,8 @@ let recurRules = [];
 let currentType = 'expense', currentPayment = 'card';
 let modalType = 'expense', modalPay = 'card';
 
-/* ── API 통신 ── */
-async function apiGet(action) {
-  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
-  const res = await fetch(API_URL + '?action=' + action + '&pw=' + encodeURIComponent(pw) + '&_=' + Date.now());
-  if (!res.ok) throw new Error('API 오류: ' + res.status);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
 
-async function apiPost(action, body) {
-  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action, pw, ...body })
-  });
-  if (!res.ok) throw new Error('API 오류: ' + res.status);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
 
-/* ── 로딩 표시 ── */
-function showLoading(on) {
-  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
-}
 
 /* ── 데이터 로드 (앱 시작 시) ── */
 async function loadAll() {
@@ -887,12 +897,12 @@ async function init(){
   ['summary-month','history-month'].forEach(id=>{ if(def) document.getElementById(id).value=def; });
   updateHeaderBalance(); updateInputBalance();
 }
-// 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면 표시
-if(sessionStorage.getItem(PW_SESSION_KEY) === '1'){
+// 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면
+if(sessionStorage.getItem(PW_SESSION_KEY) === null){
+  document.getElementById('pw-input').focus();
+} else {
   document.getElementById('pw-screen').style.display = 'none';
   init();
-} else {
-  document.getElementById('pw-input').focus();
 }
 
 /* ── 금액 입력 콤마 포맷 ── */
