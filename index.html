@@ -301,21 +301,26 @@ table.ledger td:last-child{border-right:none}
 
 <script>
 /* ── 비밀번호 ── */
-const PASSWORD = '1235'; // ← 여기서 비밀번호 변경!
+
 const PW_SESSION_KEY = 'kakeibo_auth';
 
-function checkPassword(){
+async function checkPassword(){
   const input = document.getElementById('pw-input').value;
   const errEl = document.getElementById('pw-error');
-  if(input === PASSWORD){
-    sessionStorage.setItem(PW_SESSION_KEY, '1');
-    document.getElementById('pw-screen').style.display = 'none';
-    init();
-  } else {
-    errEl.textContent = '비밀번호가 틀렸습니다';
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-input').focus();
-    setTimeout(()=>errEl.textContent='', 2000);
+  try {
+    const res = await fetch(API_URL + '?action=login&pw=' + encodeURIComponent(input));
+    const data = await res.json();
+    if(data.success){
+      sessionStorage.setItem(PW_SESSION_KEY, input);
+      document.getElementById('pw-screen').style.display = 'none';
+      init();
+    } else {
+      errEl.textContent = '비밀번호가 틀렸습니다';
+      document.getElementById('pw-input').value = '';
+      setTimeout(()=>errEl.textContent='', 2000);
+    }
+  } catch(e) {
+    errEl.textContent = '서버 연결 오류';
   }
 }
 
@@ -349,8 +354,8 @@ let modalType = 'expense', modalPay = 'card';
 
 /* ── API 통신 ── */
 async function apiGet(action) {
-  ／＊const res = await fetch(API_URL + '?action=' + action + '&_=' + Date.now());＊／
-  const res = await fetch(API_URL + '?action=' + action + '&pw=' + PASSWORD + '&_=' + Date.now());
+  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
+  const res = await fetch(API_URL + '?action=' + action + '&pw=' + encodeURIComponent(pw) + '&_=' + Date.now());
   if (!res.ok) throw new Error('API 오류: ' + res.status);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -358,13 +363,10 @@ async function apiGet(action) {
 }
 
 async function apiPost(action, body) {
-  ／＊const res = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...body })
-  });＊／
+  const pw = sessionStorage.getItem(PW_SESSION_KEY) || '';
   const res = await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, pw: PASSWORD, ...body })
+    body: JSON.stringify({ action, pw, ...body })
   });
   if (!res.ok) throw new Error('API 오류: ' + res.status);
   const data = await res.json();
