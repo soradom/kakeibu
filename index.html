@@ -92,31 +92,34 @@ table.ledger td:last-child{border-right:none}
 
 /* ── Recurring tab ── */
 .recur-card{background:#fff;border-radius:12px;border:1px solid #e4e3de;overflow:hidden;margin-bottom:14px}
-.recur-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f0efeb;background:#fff}
+.recur-item{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #f0efeb;background:#fff}
 .recur-item:last-child{border-bottom:none}
-.recur-item.dragging{opacity:.55;background:#f0f4ff}
-.recur-drag{cursor:grab;touch-action:none;color:#c8c7c2;font-size:16px;padding:0 2px;flex-shrink:0;user-select:none;line-height:1}
+.recur-item.dragging{box-shadow:0 8px 24px rgba(0,0,0,.18);border-radius:10px;border-bottom:none}
+.recur-placeholder{margin:6px 8px;border:2px dashed #c7d7ef;border-radius:8px;background:#f4f7fd}
+.recur-drag{cursor:grab;touch-action:none;color:#c8c7c2;font-size:16px;padding:0 2px;flex-shrink:0;user-select:none;line-height:1;-webkit-user-drag:none;-webkit-touch-callout:none}
 .recur-drag:active{cursor:grabbing}
-.recur-num{width:18px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:#aaa9a4}
+.recur-num{width:16px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:#aaa9a4}
 .recur-count{font-size:12px;color:#888781;margin-bottom:8px}
 .recur-count b{color:#1a1a18}
-.recur-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.recur-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .recur-icon.income{background:#e6f5ef}
 .recur-icon.expense{background:#f0f4ff}
-.recur-info{flex:1;min-width:0}
-.recur-name{font-size:13px;font-weight:600;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.recur-meta{font-size:11px;color:#888781;margin-top:2px}
-.recur-right{text-align:right;flex-shrink:0}
-.recur-amount{font-size:13px;font-weight:700}
+.recur-body{flex:1;min-width:0}
+.recur-row-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.recur-name{font-size:13px;font-weight:600;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.recur-amount{font-size:13px;font-weight:700;flex-shrink:0;white-space:nowrap}
 .recur-amount.income{color:#0d8a56}
 .recur-amount.expense{color:#c03030}
-.recur-toggle{position:relative;width:42px;height:24px;flex-shrink:0}
+.recur-row-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:3px}
+.recur-meta{font-size:11px;color:#888781;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.recur-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.recur-toggle{position:relative;width:32px;height:19px;flex-shrink:0;margin-right:2px}
 .recur-toggle input{opacity:0;width:0;height:0;position:absolute}
-.recur-toggle .slider{position:absolute;inset:0;background:#d0cfc8;border-radius:24px;cursor:pointer;transition:.2s}
-.recur-toggle .slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.recur-toggle .slider{position:absolute;inset:0;background:#d0cfc8;border-radius:19px;cursor:pointer;transition:.2s}
+.recur-toggle .slider:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .recur-toggle input:checked+.slider{background:#4472c4}
-.recur-toggle input:checked+.slider:before{transform:translateX(18px)}
-.recur-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px}
+.recur-toggle input:checked+.slider:before{transform:translateX(13px)}
+.recur-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:5px}
 .recur-badge.on{background:#e8f0fb;color:#1d5fa5}
 .recur-badge.off{background:#f0efeb;color:#888781}
 .add-recur-btn{width:100%;padding:10px;background:#f8f7f4;border:1.5px dashed #d0cfc8;border-radius:10px;font-family:inherit;font-size:13px;color:#888781;cursor:pointer;margin-bottom:14px;transition:all .15s}
@@ -800,6 +803,10 @@ document.addEventListener('change', function(e){
 });
 
 /* ── 반복규칙 드래그 정렬 ── */
+// 드래그 중인 항목은 화면에서 position:fixed로 포인터를 따라다니고,
+// 원래 리스트 자리에는 placeholder(빈 칸)를 넣어 순서만 옮긴다.
+// (항목을 직접 리스트 안에서 계속 옮기면 매번 레이아웃이 바뀌면서
+// 다른 항목 위치와 서로 간섭해 버벅이는 문제가 있었음)
 let dragState = null;
 
 document.addEventListener('pointerdown', function(e){
@@ -808,8 +815,22 @@ document.addEventListener('pointerdown', function(e){
   const item = handle.closest('.recur-item');
   if(!item) return;
   e.preventDefault();
-  dragState = { item };
+
+  const rect = item.getBoundingClientRect();
+  const placeholder = document.createElement('div');
+  placeholder.className = 'recur-placeholder';
+  placeholder.style.height = rect.height + 'px';
+  item.parentElement.insertBefore(placeholder, item);
+
+  dragState = { item, placeholder, offsetY: e.clientY - rect.top };
+
   item.classList.add('dragging');
+  item.style.position = 'fixed';
+  item.style.left = rect.left + 'px';
+  item.style.top = rect.top + 'px';
+  item.style.width = rect.width + 'px';
+  item.style.zIndex = 300;
+
   item.setPointerCapture(e.pointerId);
   item.addEventListener('pointermove', onRecurDragMove);
   item.addEventListener('pointerup', onRecurDragEnd);
@@ -818,24 +839,35 @@ document.addEventListener('pointerdown', function(e){
 
 function onRecurDragMove(e){
   if(!dragState) return;
-  const { item } = dragState;
-  const list = item.parentElement;
+  const { item, placeholder, offsetY } = dragState;
+  item.style.top = (e.clientY - offsetY) + 'px';
+
+  const list = placeholder.parentElement;
   const siblings = [...list.querySelectorAll('.recur-item:not(.dragging)')];
   let nextSibling = null;
   for(const el of siblings){
     const box = el.getBoundingClientRect();
     if(e.clientY < box.top + box.height/2){ nextSibling = el; break; }
   }
-  list.insertBefore(item, nextSibling);
+  list.insertBefore(placeholder, nextSibling);
 }
 
 async function onRecurDragEnd(e){
   if(!dragState) return;
-  const { item } = dragState;
-  item.classList.remove('dragging');
+  const { item, placeholder } = dragState;
   item.removeEventListener('pointermove', onRecurDragMove);
   item.removeEventListener('pointerup', onRecurDragEnd);
   item.removeEventListener('pointercancel', onRecurDragEnd);
+
+  placeholder.parentElement.insertBefore(item, placeholder);
+  placeholder.remove();
+  item.classList.remove('dragging');
+  item.style.position = '';
+  item.style.left = '';
+  item.style.top = '';
+  item.style.width = '';
+  item.style.zIndex = '';
+
   dragState = null;
 
   const list = document.getElementById('recurring-list');
@@ -864,22 +896,23 @@ function renderRecurring(){
       <div class="recur-drag" title="드래그하여 순서 변경">⠿</div>
       <div class="recur-num">${i+1}</div>
       <div class="recur-icon ${isInc?'income':'expense'}">${isInc?'💰':'💳'}</div>
-      <div class="recur-info">
-        <div class="recur-name">${r.desc}</div>
-        <div class="recur-meta">매월 ${r.day}일 · ${payLabel} · ${r.start} ${endLabel}</div>
-      </div>
-      <div class="recur-right">
-        <div class="recur-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
-        <div style="font-size:10px;color:#aaa;margin-top:3px">
-          <span class="recur-badge ${r.enabled?'on':'off'}">${r.enabled?'활성':'중지'}</span>
+      <div class="recur-body">
+        <div class="recur-row-top">
+          <div class="recur-name" title="${r.desc}">${r.desc}</div>
+          <div class="recur-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
+        </div>
+        <div class="recur-row-bottom">
+          <div class="recur-meta">매월 ${r.day}일 · ${payLabel} · ${r.start} ${endLabel}<span class="recur-badge ${r.enabled?'on':'off'}">${r.enabled?'활성':'중지'}</span></div>
+          <div class="recur-actions">
+            <label class="recur-toggle" title="${r.enabled?'클릭하여 중지':'클릭하여 활성화'}">
+              <input type="checkbox" ${r.enabled?'checked':''} data-rid="${r.id}" class="recur-chk">
+              <span class="slider"></span>
+            </label>
+            <button class="edit-btn" data-eid="${r.id}" title="수정">✎</button>
+            <button class="del-btn" data-rid="${r.id}" title="삭제">×</button>
+          </div>
         </div>
       </div>
-      <label class="recur-toggle" title="${r.enabled?'클릭하여 중지':'클릭하여 활성화'}">
-        <input type="checkbox" ${r.enabled?'checked':''} data-rid="${r.id}" class="recur-chk">
-        <span class="slider"></span>
-      </label>
-      <button class="edit-btn" data-eid="${r.id}" title="수정">✎</button>
-      <button class="del-btn" data-rid="${r.id}" title="삭제">×</button>
     </div>`;
   }).join('')+'</div>';
 }
