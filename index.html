@@ -16,6 +16,8 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .header h1{font-size:15px;font-weight:700}
 .balance-pill{background:#1a1a18;color:#fff;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;letter-spacing:-0.3px}
 .balance-pill .lbl{opacity:.55;font-weight:400}
+.search-btn{background:none;border:none;cursor:pointer;color:#1a1a18;padding:5px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.search-btn:hover{background:#f0efeb}
 .tabs{display:flex}
 .tab{flex:1;padding:10px 0;font-size:12px;font-weight:500;color:#888781;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s}
 .tab.active{color:#1a1a18;border-bottom-color:#1a1a18}
@@ -51,11 +53,11 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .sc-label{font-size:11px;color:#888781;margin-bottom:4px}
 .sc-val{font-size:17px;font-weight:700}
 .sc-val.income{color:#0d8a56}.sc-val.expense{color:#c03030}
-.sc-val.card-c{color:#2a78d6}.sc-val.cash-c{color:#555450}
-.usable-card{background:#e8f0fb;border-radius:12px;padding:14px;margin-bottom:14px}
-.uc-label{font-size:11px;color:#1d5fa5;font-weight:600;margin-bottom:5px}
+.sc-val.card-c{color:#1a1a18}.sc-val.cash-c{color:#555450}
+.usable-card{background:#1a1a18;color:#fff;border-radius:12px;padding:14px;margin-bottom:14px}
+.uc-label{font-size:11px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
 .uc-val{font-size:22px;font-weight:700}
-.uc-sub{font-size:11px;color:#3878c0;margin-top:4px}
+.uc-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:4px}
 
 /* ── Month selector ── */
 .month-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -63,39 +65,37 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .month-row select{font-family:inherit;font-size:13px;background:#fff;border:1px solid #d8d7d2;border-radius:8px;padding:6px 10px;cursor:pointer;flex:1}
 
 /* ── Ledger Table ── */
-.ledger-wrap{overflow-x:auto;border-radius:10px;border:1px solid #d0cfc8;margin-bottom:14px}
+.ledger-wrap{overflow-x:auto;border-radius:12px;border:1px solid #e4e3de;margin-bottom:14px;background:#fff}
 table.ledger{width:100%;border-collapse:collapse;font-size:13px;min-width:380px}
-table.ledger thead tr{background:#4472c4}
-table.ledger thead th{color:#fff;font-weight:600;padding:9px 10px;text-align:center;border-right:1px solid #3a62b0;white-space:nowrap}
-table.ledger thead th:last-child{border-right:none}
-table.ledger tbody tr{border-bottom:1px solid #e8e7e2}
+table.ledger thead tr{background:#f8f7f4}
+table.ledger thead th{color:#888781;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:10px;text-align:center;border-bottom:1px solid #e4e3de;white-space:nowrap}
+table.ledger tbody tr{border-bottom:1px solid #f0efeb;transition:background .1s}
 table.ledger tbody tr:last-child{border-bottom:none}
-table.ledger tbody tr:nth-child(even){background:#f0f4ff}
-table.ledger tbody tr:nth-child(odd){background:#fff}
-table.ledger tbody tr:hover{background:#dce8f8}
-table.ledger td{padding:8px 10px;border-right:1px solid #e8e7e2;vertical-align:middle}
-table.ledger td:last-child{border-right:none}
-.col-type{text-align:center;white-space:nowrap;font-size:12px;font-weight:600}
-.col-type.income{color:#0d8a56}.col-type.expense{color:#1a1a18}
-.col-desc{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.col-amount{text-align:right;white-space:nowrap;font-weight:600;color:#c03030}
+table.ledger tbody tr:hover{background:#f8f7f4}
+table.ledger td{padding:10px;vertical-align:middle}
+.col-type{text-align:center;white-space:nowrap}
+.type-pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+.type-pill.income{background:#e6f5ef;color:#0d8a56}
+.type-pill.expense{background:#f0efeb;color:#555450}
+.col-desc{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.col-amount{text-align:right;white-space:nowrap;font-weight:700;color:#c03030}
 .col-amount.income{color:#0d8a56}
-.col-balance{text-align:right;white-space:nowrap;font-weight:600;color:#1a4a8a}
+.col-balance{text-align:right;white-space:nowrap;font-weight:600;color:#555450;font-size:12px}
 .col-action{text-align:center;width:28px;padding:4px}
 .del-btn{background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:2px 5px;border-radius:4px}
 .del-btn:hover{color:#c03030;background:#fdecea}
 .edit-btn{background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;padding:2px 5px;border-radius:4px}
-.edit-btn:hover{color:#4472c4;background:#e8f0fb}
-.tfoot-row td{background:#e8edf8;font-weight:700;font-size:13px;padding:9px 10px;border-top:2px solid #4472c4}
+.edit-btn:hover{color:#1a1a18;background:#f0efeb}
+.tfoot-row td{background:#f8f7f4;font-weight:700;font-size:13px;padding:10px;border-top:1px solid #e4e3de}
 .tfoot-row .col-amount{color:#c03030}
-.tfoot-row .col-balance{color:#1a4a8a}
+.tfoot-row .col-balance{color:#1a1a18}
 
 /* ── Recurring tab ── */
 .recur-card{background:#fff;border-radius:12px;border:1px solid #e4e3de;overflow:hidden;margin-bottom:14px}
 .recur-item{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #f0efeb;background:#fff}
 .recur-item:last-child{border-bottom:none}
 .recur-item.dragging{box-shadow:0 8px 24px rgba(0,0,0,.18);border-radius:10px;border-bottom:none}
-.recur-placeholder{margin:6px 8px;border:2px dashed #c7d7ef;border-radius:8px;background:#f4f7fd}
+.recur-placeholder{margin:6px 8px;border:2px dashed #d0cfc8;border-radius:8px;background:#f8f7f4}
 .recur-drag{cursor:grab;touch-action:none;color:#c8c7c2;font-size:16px;padding:0 2px;flex-shrink:0;user-select:none;line-height:1;-webkit-user-drag:none;-webkit-touch-callout:none}
 .recur-drag:active{cursor:grabbing}
 .recur-num{width:16px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:#aaa9a4}
@@ -103,7 +103,7 @@ table.ledger td:last-child{border-right:none}
 .recur-count b{color:#1a1a18}
 .recur-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .recur-icon.income{background:#e6f5ef}
-.recur-icon.expense{background:#f0f4ff}
+.recur-icon.expense{background:#f0efeb}
 .recur-body{flex:1;min-width:0}
 .recur-row-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .recur-name{font-size:13px;font-weight:600;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -117,13 +117,13 @@ table.ledger td:last-child{border-right:none}
 .recur-toggle input{opacity:0;width:0;height:0;position:absolute}
 .recur-toggle .slider{position:absolute;inset:0;background:#d0cfc8;border-radius:19px;cursor:pointer;transition:.2s}
 .recur-toggle .slider:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
-.recur-toggle input:checked+.slider{background:#4472c4}
+.recur-toggle input:checked+.slider{background:#1a1a18}
 .recur-toggle input:checked+.slider:before{transform:translateX(13px)}
 .recur-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:5px}
-.recur-badge.on{background:#e8f0fb;color:#1d5fa5}
+.recur-badge.on{background:#ececea;color:#1a1a18}
 .recur-badge.off{background:#f0efeb;color:#888781}
 .add-recur-btn{width:100%;padding:10px;background:#f8f7f4;border:1.5px dashed #d0cfc8;border-radius:10px;font-family:inherit;font-size:13px;color:#888781;cursor:pointer;margin-bottom:14px;transition:all .15s}
-.add-recur-btn:hover{border-color:#4472c4;color:#4472c4;background:#e8f0fb}
+.add-recur-btn:hover{border-color:#1a1a18;color:#1a1a18;background:#f0efeb}
 
 /* ── Modal ── */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center}
@@ -132,11 +132,28 @@ table.ledger td:last-child{border-right:none}
 .modal-title{font-size:15px;font-weight:700;margin-bottom:16px}
 .modal-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#888781;line-height:1}
 
+/* ── 통합 검색 ── */
+.search-input-wrap{position:sticky;top:0;background:#fff;padding-bottom:10px;margin-bottom:2px;z-index:1;border-bottom:1px solid #f0efeb}
+.search-input-wrap input{width:100%;font-family:inherit;font-size:14px;color:#1a1a18;background:#f8f7f4;border:1px solid #e4e3de;border-radius:8px;padding:10px 12px;outline:none;transition:border-color .15s}
+.search-input-wrap input:focus{border-color:#1a1a18;background:#fff}
+.search-summary{font-size:11px;font-weight:700;color:#888781;text-transform:uppercase;letter-spacing:.3px;margin:14px 0 4px}
+.search-summary:first-child{margin-top:10px}
+.search-summary b{color:#1a1a18;text-transform:none;letter-spacing:0}
+.search-hit{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #f0efeb;cursor:pointer;border-radius:8px}
+.search-hit:last-child{border-bottom:none}
+.search-hit:hover{background:#f8f7f4}
+.search-hit-info{flex:1;min-width:0}
+.search-hit-name{font-size:13px;font-weight:600;color:#1a1a18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-hit-meta{font-size:11px;color:#888781;margin-top:2px}
+.search-hit-amount{font-size:13px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.search-more-btn{display:block;width:100%;margin-top:10px;padding:9px;background:#f8f7f4;border:1.5px dashed #d0cfc8;border-radius:10px;font-family:inherit;font-size:12px;color:#888781;cursor:pointer;transition:all .15s}
+.search-more-btn:hover{border-color:#1a1a18;color:#1a1a18;background:#f0efeb}
+
 /* ── Card due ── */
-.card-due-big{background:#e8f0fb;border-radius:12px;padding:16px;margin-bottom:14px}
-.cd-label{font-size:11px;color:#1d5fa5;font-weight:600;margin-bottom:6px}
-.cd-val{font-size:26px;font-weight:700;color:#1a4a8a}
-.cd-sub{font-size:11px;color:#3878c0;margin-top:4px}
+.card-due-big{background:#1a1a18;color:#fff;border-radius:12px;padding:16px;margin-bottom:14px}
+.cd-label{font-size:11px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.cd-val{font-size:26px;font-weight:700}
+.cd-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:4px}
 .section-title{font-size:11px;font-weight:700;color:#888781;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px}
 .empty{padding:2.5rem;text-align:center;color:#aaa9a4;font-size:13px;background:#fff;border-radius:10px;border:1px solid #e4e3de}
 
@@ -183,7 +200,12 @@ table.ledger td:last-child{border-right:none}
 <div class="header">
   <div class="header-top">
     <h1>💰 통합지출관리</h1>
-    <div class="balance-pill"><span class="lbl">현재잔액</span><span id="header-balance">-</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="search-btn" onclick="openSearchModal()" title="통합 검색">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+      <div class="balance-pill"><span class="lbl">현재잔액</span><span id="header-balance">-</span></div>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab active" onclick="showTab('input')">입력</button>
@@ -254,8 +276,8 @@ table.ledger td:last-child{border-right:none}
 
 <!-- 반복 설정 탭 -->
 <div id="tab-recurring" class="panel">
-  <div class="form-card" style="margin-bottom:14px;background:#e8f0fb;border-color:#b8d0f0">
-    <div style="font-size:12px;color:#1d5fa5;line-height:1.6">
+  <div class="form-card" style="margin-bottom:14px;background:#f8f7f4">
+    <div style="font-size:12px;color:#555450;line-height:1.6">
       📅 <strong>반복 거래</strong>는 매월 지정한 날짜에 자동으로 거래가 추가됩니다.<br>
       앱을 열 때 오늘 날짜를 기준으로 누락된 달의 반복 거래를 한 번에 처리합니다.
     </div>
@@ -309,6 +331,18 @@ table.ledger td:last-child{border-right:none}
       <input type="month" id="rm-end">
     </div>
     <button class="submit-btn" id="recur-save-btn" onclick="saveRecurring()">저장</button>
+  </div>
+</div>
+
+<!-- 통합 검색 모달 -->
+<div class="modal-backdrop hidden" id="search-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSearchModal()">✕</button>
+    <div class="modal-title">통합 검색</div>
+    <div class="search-input-wrap">
+      <input type="search" id="search-input" placeholder="예: 스타벅스, 넷플릭스..." oninput="renderSearchResults()">
+    </div>
+    <div id="search-results"></div>
   </div>
 </div>
 
@@ -605,12 +639,12 @@ function ledgerTable(data, showDelete=false, showCardDate=false){
   const body=data.map(r=>{
     const isInc=r.category==='수입';
     const ri=r.recurId?'🔁 ':'';
-    const cd=showCardDate?`<td style="font-size:11px;color:#3878c0;text-align:center;white-space:nowrap">${r.card_date||'-'}</td>`:'';
+    const cd=showCardDate?`<td style="font-size:11px;color:#888781;text-align:center;white-space:nowrap">${r.card_date||'-'}</td>`:'';
     const del=showDelete?`<td class="col-action"><button class="del-btn" data-id="${r.id}">×</button></td>`:'';
     const dateStr=r.date?r.date.slice(5).replace('-','/'):'';
     return `<tr>
       <td style="text-align:center;font-size:11px;color:#888781;white-space:nowrap">${dateStr}</td>
-      <td class="col-type ${isInc?'income':'expense'}">${r.category}</td>
+      <td class="col-type"><span class="type-pill ${isInc?'income':'expense'}">${r.category}</span></td>
       <td class="col-desc">${ri}${r.desc}</td>
       <td class="col-amount ${isInc?'income':''}">${isInc?'+':'-'}${fmt(r.amount)}</td>
       <td class="col-balance">${r.balance!=null?fmt(r.balance):"-"}</td>
@@ -655,11 +689,11 @@ function renderSummary(){
       <span>수입 대비 지출</span><span style="font-weight:700;color:${over?'#c03030':'#0d8a56'}">${Math.round(totalExp/income*100)}%</span>
     </div>
     <div style="background:#e8e7e2;border-radius:4px;height:8px;overflow:hidden">
-      <div style="height:100%;border-radius:4px;background:${over?'#c03030':'#2a78d6'};width:${pct}%"></div>
+      <div style="height:100%;border-radius:4px;background:${over?'#c03030':'#0d8a56'};width:${pct}%"></div>
     </div></div>`;
   html+=`<div class="usable-card">
     <div class="uc-label">💰 사용 가능 잔액</div>
-    <div class="uc-val" style="color:${usable<0?'#c03030':'#1a4a8a'}">${fmt(usable)}</div>
+    <div class="uc-val" style="color:${usable<0?'#ff6b6b':'#fff'}">${fmt(usable)}</div>
     <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
   if(thisCardDue>0) html+=`<div class="sc" style="margin-bottom:14px">
@@ -1050,6 +1084,90 @@ async function saveRecurring(){
     if(btn) btn.disabled=false;
   }
 }
+
+/* ── 통합 검색 ── */
+const SEARCH_RESULT_LIMIT=50;
+let searchShowCount=SEARCH_RESULT_LIMIT;
+
+function openSearchModal(){
+  document.getElementById('search-modal').classList.remove('hidden');
+  const input=document.getElementById('search-input');
+  input.value='';
+  searchShowCount=SEARCH_RESULT_LIMIT;
+  document.getElementById('search-results').innerHTML='<div class="empty">검색어를 입력하세요</div>';
+  setTimeout(()=>input.focus(),50);
+}
+function closeSearchModal(){ document.getElementById('search-modal').classList.add('hidden'); }
+
+function loadMoreSearchResults(){
+  searchShowCount+=SEARCH_RESULT_LIMIT;
+  renderSearchResults(false);
+}
+
+function renderSearchResults(resetPage=true){
+  if(resetPage) searchShowCount=SEARCH_RESULT_LIMIT;
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  const el=document.getElementById('search-results');
+  if(!q){ el.innerHTML='<div class="empty">검색어를 입력하세요</div>'; return; }
+
+  const txHitsAll=rows.filter(r=>!r.is_future && r.desc.toLowerCase().includes(q))
+                    .sort((a,b)=>b.date.localeCompare(a.date));
+  const txHits=txHitsAll.slice(0,searchShowCount);
+  const recurHits=recurRules.filter(r=>r.desc.toLowerCase().includes(q));
+
+  if(!txHitsAll.length && !recurHits.length){
+    el.innerHTML='<div class="empty">일치하는 내역이 없습니다</div>';
+    return;
+  }
+
+  let html='';
+  if(txHitsAll.length){
+    const net=txHitsAll.reduce((s,r)=>s+(r.category==='지출'?-r.amount:r.amount),0);
+    html+=`<div class="search-summary">거래 내역 <b>${txHitsAll.length}건</b> · 합계 <b>${net<0?'-':'+'}${fmt(Math.abs(net))}</b></div>`;
+    html+=txHits.map(r=>{
+      const isInc=r.category==='수입';
+      return `<div class="search-hit" data-nav-month="${r.date.slice(0,7)}">
+        <div class="search-hit-info">
+          <div class="search-hit-name">${r.recurId?'🔁 ':''}${r.desc}</div>
+          <div class="search-hit-meta">${r.date} · ${r.category}${r.is_cash?' · 현금':''}</div>
+        </div>
+        <div class="search-hit-amount" style="color:${isInc?'#0d8a56':'#c03030'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
+      </div>`;
+    }).join('');
+    if(txHitsAll.length>txHits.length){
+      const remain=txHitsAll.length-txHits.length;
+      html+=`<button class="search-more-btn" onclick="loadMoreSearchResults()">+ ${Math.min(SEARCH_RESULT_LIMIT,remain)}건 더 보기 (${txHits.length}/${txHitsAll.length})</button>`;
+    }
+  }
+  if(recurHits.length){
+    html+=`<div class="search-summary">반복 설정 <b>${recurHits.length}건</b></div>`;
+    html+=recurHits.map(r=>{
+      const isInc=r.category==='수입';
+      return `<div class="search-hit" data-nav-recur="1">
+        <div class="search-hit-info">
+          <div class="search-hit-name">${r.desc}</div>
+          <div class="search-hit-meta">매월 ${r.day}일 · ${r.enabled?'활성':'중지'}</div>
+        </div>
+        <div class="search-hit-amount" style="color:${isInc?'#0d8a56':'#c03030'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
+      </div>`;
+    }).join('');
+  }
+  el.innerHTML=html;
+}
+
+document.addEventListener('click', function(e){
+  const hit=e.target.closest('.search-hit');
+  if(!hit) return;
+  if(hit.dataset.navMonth){
+    const sel=document.getElementById('history-month');
+    if([...sel.options].some(o=>o.value===hit.dataset.navMonth)) sel.value=hit.dataset.navMonth;
+    closeSearchModal();
+    showTab('history');
+  } else if(hit.dataset.navRecur){
+    closeSearchModal();
+    showTab('recurring');
+  }
+});
 
 /* ── Init ── */
 async function init(){
