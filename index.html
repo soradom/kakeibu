@@ -92,8 +92,14 @@ table.ledger td:last-child{border-right:none}
 
 /* ── Recurring tab ── */
 .recur-card{background:#fff;border-radius:12px;border:1px solid #e4e3de;overflow:hidden;margin-bottom:14px}
-.recur-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f0efeb}
+.recur-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f0efeb;background:#fff}
 .recur-item:last-child{border-bottom:none}
+.recur-item.dragging{opacity:.55;background:#f0f4ff}
+.recur-drag{cursor:grab;touch-action:none;color:#c8c7c2;font-size:16px;padding:0 2px;flex-shrink:0;user-select:none;line-height:1}
+.recur-drag:active{cursor:grabbing}
+.recur-num{width:18px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:#aaa9a4}
+.recur-count{font-size:12px;color:#888781;margin-bottom:8px}
+.recur-count b{color:#1a1a18}
 .recur-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .recur-icon.income{background:#e6f5ef}
 .recur-icon.expense{background:#f0f4ff}
@@ -299,7 +305,7 @@ table.ledger td:last-child{border-right:none}
       <label>반복 종료 월 (YYYY-MM, 비우면 무기한)</label>
       <input type="month" id="rm-end">
     </div>
-    <button class="submit-btn" onclick="saveRecurring()">저장</button>
+    <button class="submit-btn" id="recur-save-btn" onclick="saveRecurring()">저장</button>
   </div>
 </div>
 
@@ -793,16 +799,70 @@ document.addEventListener('change', function(e){
   toggleRecur(rid, chk.checked);
 });
 
+/* ── 반복규칙 드래그 정렬 ── */
+let dragState = null;
+
+document.addEventListener('pointerdown', function(e){
+  const handle = e.target.closest('.recur-drag');
+  if(!handle) return;
+  const item = handle.closest('.recur-item');
+  if(!item) return;
+  e.preventDefault();
+  dragState = { item };
+  item.classList.add('dragging');
+  item.setPointerCapture(e.pointerId);
+  item.addEventListener('pointermove', onRecurDragMove);
+  item.addEventListener('pointerup', onRecurDragEnd);
+  item.addEventListener('pointercancel', onRecurDragEnd);
+});
+
+function onRecurDragMove(e){
+  if(!dragState) return;
+  const { item } = dragState;
+  const list = item.parentElement;
+  const siblings = [...list.querySelectorAll('.recur-item:not(.dragging)')];
+  let nextSibling = null;
+  for(const el of siblings){
+    const box = el.getBoundingClientRect();
+    if(e.clientY < box.top + box.height/2){ nextSibling = el; break; }
+  }
+  list.insertBefore(item, nextSibling);
+}
+
+async function onRecurDragEnd(e){
+  if(!dragState) return;
+  const { item } = dragState;
+  item.classList.remove('dragging');
+  item.removeEventListener('pointermove', onRecurDragMove);
+  item.removeEventListener('pointerup', onRecurDragEnd);
+  item.removeEventListener('pointercancel', onRecurDragEnd);
+  dragState = null;
+
+  const list = document.getElementById('recurring-list');
+  const newOrder = [...list.querySelectorAll('.recur-item')].map(el=>el.getAttribute('data-rid'));
+  recurRules.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
+  renderRecurring();
+  try{
+    await apiPost('saveRecur',{rules:recurRules});
+  }catch(err){
+    showToast('⚠️ 순서 저장 실패: '+err.message);
+  }
+}
+
 /* ── Recurring tab ── */
 function renderRecurring(){
   const el=document.getElementById('recurring-list');
   if(!recurRules.length){ el.innerHTML='<div class="empty">등록된 반복 거래가 없습니다</div>'; return; }
   const icons={수입:'💰', 지출:'💳'};
-  el.innerHTML='<div class="recur-card">'+recurRules.map(r=>{
+  const activeCount=recurRules.filter(r=>r.enabled).length;
+  const countHtml=`<div class="recur-count">총 <b>${recurRules.length}개</b> (활성 ${activeCount} · 중지 ${recurRules.length-activeCount})</div>`;
+  el.innerHTML=countHtml+'<div class="recur-card">'+recurRules.map((r,i)=>{
     const isInc=r.category==='수입';
     const payLabel=r.is_cash?'현금':(r.card_day?`카드(다음달 ${r.card_day}일 결제)`:'카드');
     const endLabel=r.end?`~${r.end}`:'무기한';
-    return `<div class="recur-item">
+    return `<div class="recur-item" data-rid="${r.id}">
+      <div class="recur-drag" title="드래그하여 순서 변경">⠿</div>
+      <div class="recur-num">${i+1}</div>
       <div class="recur-icon ${isInc?'income':'expense'}">${isInc?'💰':'💳'}</div>
       <div class="recur-info">
         <div class="recur-name">${r.desc}</div>
@@ -905,6 +965,8 @@ function setModalPay(p){ modalPay=p;
   document.getElementById('rm-card-date-row').style.display=p==='card'?'block':'none';
 }
 async function saveRecurring(){
+  const btn=document.getElementById('recur-save-btn');
+  if(btn && btn.disabled) return; // 중복 클릭 방지
   const desc=document.getElementById('rm-desc').value.trim();
   const amount=getRawAmount('rm-amount');
   const day=parseInt(document.getElementById('rm-day').value);
@@ -923,15 +985,19 @@ async function saveRecurring(){
     desc:isCash?'(현금)'+desc:desc,
     amount, day, is_cash:isCash, card_day:cardDay, start, end
   };
+  let addedRule=null, editIdx=-1, prevSnapshot=null;
   if(editingRecurId){
-    const idx=recurRules.findIndex(r=>r.id===editingRecurId);
-    if(idx===-1){ showToast('수정할 항목을 찾을 수 없습니다'); return; }
-    recurRules[idx]={...recurRules[idx], ...ruleData};
+    editIdx=recurRules.findIndex(r=>r.id===editingRecurId);
+    if(editIdx===-1){ showToast('수정할 항목을 찾을 수 없습니다'); return; }
+    prevSnapshot={...recurRules[editIdx]};
+    recurRules[editIdx]={...recurRules[editIdx], ...ruleData};
     // 이 규칙에서 생성된 기존 가상 거래는 지우고 새 값으로 다시 생성
     rows=rows.filter(r=>r.recurId!==editingRecurId);
   } else {
-    recurRules.push({ id:'r'+Date.now(), enabled:true, ...ruleData });
+    addedRule={ id:'r'+Date.now(), enabled:true, ...ruleData };
+    recurRules.push(addedRule);
   }
+  if(btn) btn.disabled=true;
   try{
     await apiPost('saveRecur',{rules:recurRules});
     applyRecurring(); recalcBalances();
@@ -939,7 +1005,17 @@ async function saveRecurring(){
     const wasEditing=!!editingRecurId;
     closeAddRecurModal(); renderRecurring();
     showToast(wasEditing?'✓ 반복 거래가 수정되었습니다':'✓ 반복 거래가 등록되었습니다');
-  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+  }catch(e){
+    // 저장 실패 시 로컬에 반영했던 변경을 되돌려 재시도 시 중복 생성을 방지
+    if(addedRule){
+      recurRules=recurRules.filter(r=>r!==addedRule);
+    } else if(editIdx!==-1 && prevSnapshot){
+      recurRules[editIdx]=prevSnapshot;
+    }
+    showToast('⚠️ 저장 실패: '+e.message);
+  } finally {
+    if(btn) btn.disabled=false;
+  }
 }
 
 /* ── Init ── */
