@@ -81,7 +81,7 @@ table.ledger td{padding:10px;vertical-align:middle}
 .col-amount{text-align:right;white-space:nowrap;font-weight:700;color:#c03030}
 .col-amount.income{color:#0d8a56}
 .col-balance{text-align:right;white-space:nowrap;font-weight:600;color:#555450;font-size:12px}
-.col-action{text-align:center;width:28px;padding:4px}
+.col-action{text-align:center;white-space:nowrap;padding:4px}
 .del-btn{background:none;border:none;color:#ccc;font-size:15px;cursor:pointer;padding:2px 5px;border-radius:4px}
 .del-btn:hover{color:#c03030;background:#fdecea}
 .edit-btn{background:none;border:none;color:#ccc;font-size:14px;cursor:pointer;padding:2px 5px;border-radius:4px}
@@ -89,6 +89,8 @@ table.ledger td{padding:10px;vertical-align:middle}
 .tfoot-row td{background:#f8f7f4;font-weight:700;font-size:13px;padding:10px;border-top:1px solid #e4e3de}
 .tfoot-row .col-amount{color:#c03030}
 .tfoot-row .col-balance{color:#1a1a18}
+@keyframes row-flash{0%{background:#fdf0b8}70%{background:#fdf0b8}100%{background:transparent}}
+table.ledger tbody tr.row-flash{animation:row-flash 2.2s ease-out}
 
 /* ── Recurring tab ── */
 .recur-card{background:#fff;border-radius:12px;border:1px solid #e4e3de;overflow:hidden;margin-bottom:14px}
@@ -331,6 +333,23 @@ table.ledger td{padding:10px;vertical-align:middle}
       <input type="month" id="rm-end">
     </div>
     <button class="submit-btn" id="recur-save-btn" onclick="saveRecurring()">저장</button>
+  </div>
+</div>
+
+<!-- 거래 수정 모달 -->
+<div class="modal-backdrop hidden" id="tx-edit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeTxEditModal()">✕</button>
+    <div class="modal-title">거래 수정</div>
+    <div class="form-row">
+      <label>내역</label>
+      <input type="text" id="tx-edit-desc">
+    </div>
+    <div class="form-row">
+      <label>금액 (원)</label>
+      <input type="text" id="tx-edit-amount" inputmode="numeric">
+    </div>
+    <button class="submit-btn" id="tx-edit-save-btn" onclick="saveTxEdit()">저장</button>
   </div>
 </div>
 
@@ -634,15 +653,15 @@ function ledgerTable(data, showDelete=false, showCardDate=false){
   const lastBal=data[data.length-1]?.balance??0;
   const cdCol=showCardDate?'<th>카드결제일</th>':'';
   const cdFoot=showCardDate?'<td></td>':'';
-  const delHead=showDelete?'<th style="width:28px"></th>':'';
+  const delHead=showDelete?'<th style="width:56px"></th>':'';
   const delFoot=showDelete?'<td></td>':'';
   const body=data.map(r=>{
     const isInc=r.category==='수입';
     const ri=r.recurId?'🔁 ':'';
     const cd=showCardDate?`<td style="font-size:11px;color:#888781;text-align:center;white-space:nowrap">${r.card_date||'-'}</td>`:'';
-    const del=showDelete?`<td class="col-action"><button class="del-btn" data-id="${r.id}">×</button></td>`:'';
+    const del=showDelete?`<td class="col-action"><button class="edit-btn" data-tid="${r.id}" title="수정">✎</button><button class="del-btn" data-id="${r.id}" title="삭제">×</button></td>`:'';
     const dateStr=r.date?r.date.slice(5).replace('-','/'):'';
-    return `<tr>
+    return `<tr data-id="${r.id}">
       <td style="text-align:center;font-size:11px;color:#888781;white-space:nowrap">${dateStr}</td>
       <td class="col-type"><span class="type-pill ${isInc?'income':'expense'}">${r.category}</span></td>
       <td class="col-desc">${ri}${r.desc}</td>
@@ -788,6 +807,61 @@ async function deleteRow(id){
   }
 }
 
+/* ── 거래 수정 ── */
+let editingTxId = null;
+
+function openTxEditModal(id){
+  const r = rows.find(x=>x.id===id);
+  if(!r) return;
+  editingTxId = id;
+  let descVal = r.desc;
+  if(r.is_cash && descVal.startsWith('(현금)')) descVal = descVal.slice(4);
+  document.getElementById('tx-edit-desc').value = descVal;
+  document.getElementById('tx-edit-amount').value = r.amount.toLocaleString('ko-KR');
+  document.getElementById('tx-edit-amount').dataset.raw = String(r.amount);
+  document.getElementById('tx-edit-modal').classList.remove('hidden');
+}
+function closeTxEditModal(){ document.getElementById('tx-edit-modal').classList.add('hidden'); editingTxId = null; }
+
+async function saveTxEdit(){
+  const btn = document.getElementById('tx-edit-save-btn');
+  if(btn && btn.disabled) return;
+  const r = rows.find(x=>x.id===editingTxId);
+  if(!r){ showToast('수정할 거래를 찾을 수 없습니다'); return; }
+  const descInput = document.getElementById('tx-edit-desc').value.trim();
+  const amount = getRawAmount('tx-edit-amount');
+  if(!descInput){ showToast('내역을 입력해주세요'); return; }
+  if(!amount||amount<=0){ showToast('금액을 입력해주세요'); return; }
+
+  const newDesc = r.is_cash ? '(현금)'+descInput : descInput;
+  const prevDesc = r.desc, prevAmount = r.amount;
+  r.desc = newDesc; r.amount = amount;
+
+  if(btn) btn.disabled = true;
+  try{
+    try{
+      await apiPost('updateRow', {id:r.id, desc:newDesc, amount});
+    }catch(err){
+      // 반복 거래로 생성된, 아직 시트에 저장된 적 없는 행이면 새로 추가
+      if(err.message === 'not found'){
+        await apiPost('addRow', {...r});
+      } else {
+        throw err;
+      }
+    }
+    recalcBalances();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    closeTxEditModal();
+    renderHistory();
+    showToast('✓ 거래가 수정되었습니다');
+  }catch(e){
+    r.desc = prevDesc; r.amount = prevAmount;
+    showToast('⚠️ 저장 실패: '+e.message);
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+}
+
 // 이벤트 위임: 거래 삭제 (data-id), 반복규칙 삭제 (data-rid), 토글 (recur-chk)
 document.addEventListener('click', function(e){
   // 거래내역 삭제
@@ -803,6 +877,12 @@ document.addEventListener('click', function(e){
       delBtn.style.fontWeight = '700';
       setTimeout(()=>{ if(delBtn.dataset.confirm) { delBtn.dataset.confirm=''; delBtn.textContent='×'; delBtn.style.color=''; delBtn.style.fontWeight=''; } }, 2500);
     }
+    return;
+  }
+  // 거래내역 수정
+  const txEditBtn = e.target.closest('.edit-btn[data-tid]');
+  if(txEditBtn){
+    openTxEditModal(txEditBtn.getAttribute('data-tid'));
     return;
   }
   // 반복규칙 수정
@@ -1126,7 +1206,7 @@ function renderSearchResults(resetPage=true){
     html+=`<div class="search-summary">거래 내역 <b>${txHitsAll.length}건</b> · 합계 <b>${net<0?'-':'+'}${fmt(Math.abs(net))}</b></div>`;
     html+=txHits.map(r=>{
       const isInc=r.category==='수입';
-      return `<div class="search-hit" data-nav-month="${r.date.slice(0,7)}">
+      return `<div class="search-hit" data-nav-month="${r.date.slice(0,7)}" data-nav-id="${r.id}">
         <div class="search-hit-info">
           <div class="search-hit-name">${r.recurId?'🔁 ':''}${r.desc}</div>
           <div class="search-hit-meta">${r.date} · ${r.category}${r.is_cash?' · 현금':''}</div>
@@ -1155,6 +1235,18 @@ function renderSearchResults(resetPage=true){
   el.innerHTML=html;
 }
 
+function highlightRow(id){
+  requestAnimationFrame(()=>{
+    const tr=document.querySelector(`#history-content tr[data-id="${id}"]`);
+    if(!tr) return;
+    tr.scrollIntoView({behavior:'smooth', block:'center'});
+    tr.classList.remove('row-flash');
+    void tr.offsetWidth; // 애니메이션 재시작을 위한 리플로우 강제
+    tr.classList.add('row-flash');
+    setTimeout(()=>tr.classList.remove('row-flash'), 2300);
+  });
+}
+
 document.addEventListener('click', function(e){
   const hit=e.target.closest('.search-hit');
   if(!hit) return;
@@ -1163,6 +1255,7 @@ document.addEventListener('click', function(e){
     if([...sel.options].some(o=>o.value===hit.dataset.navMonth)) sel.value=hit.dataset.navMonth;
     closeSearchModal();
     showTab('history');
+    if(hit.dataset.navId) highlightRow(hit.dataset.navId);
   } else if(hit.dataset.navRecur){
     closeSearchModal();
     showTab('recurring');
@@ -1201,7 +1294,7 @@ function getRawAmount(id){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  ['input-amount','rm-amount'].forEach(id=>{
+  ['input-amount','rm-amount','tx-edit-amount'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.addEventListener('input', function(){
