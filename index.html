@@ -183,6 +183,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .recur-item{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #f5f6f8}
 .recur-item:last-child{border-bottom:none}
 .recur-drag{color:#c8cad0;font-size:16px;cursor:grab;flex-shrink:0}
+.recur-num{width:16px;flex-shrink:0;text-align:center;font-size:11px;font-weight:700;color:#c8cad0}
 .recur-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .recur-icon.income{background:#eef3fb}
 .recur-icon.expense{background:#f5f6f8}
@@ -850,7 +851,7 @@ function renderSummary(){
     <div class="uc-val" style="color:${usable<0?'#ff6b6b':'#fff'}">${fmt(usable)}</div>
     <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
-  if(thisCardDue>0) html+=`<div class="sc" style="margin-bottom:14px">
+  if(thisCardDue>0) html+=`<div class="summary-card" style="margin-bottom:14px">
     <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
     <div class="sc-val expense" style="font-size:16px">${fmt(thisCardDue)}</div>
   </div>`;
@@ -1179,11 +1180,11 @@ function renderRecurring(){
       <div class="recur-num">${i+1}</div>
       <div class="recur-icon ${isInc?'income':'expense'}">${isInc?'💰':'💳'}</div>
       <div class="recur-body">
-        <div class="recur-row-top">
+        <div class="recur-top">
           <div class="recur-name" title="${r.desc}">${r.desc}</div>
-          <div class="recur-amount ${isInc?'income':'expense'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
+          <div class="recur-amt ${isInc?'income':'expense'}">${isInc?'+':'-'}${fmt(r.amount)}</div>
         </div>
-        <div class="recur-row-bottom">
+        <div class="recur-bottom">
           <div class="recur-meta">매월 ${r.day}일 · ${payLabel} · ${r.start} ${endLabel}<span class="recur-badge ${r.enabled?'on':'off'}">${r.enabled?'활성':'중지'}</span></div>
           <div class="recur-actions">
             <label class="recur-toggle" title="${r.enabled?'클릭하여 중지':'클릭하여 활성화'}">
