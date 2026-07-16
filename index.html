@@ -837,11 +837,11 @@ function renderSummary(){
   const sh_expense = fmt(totalExp);
   let html=`<div class="summary-hero">
     <div class="sh-label">이번 달 잔액</div>
-    <div class="sh-val">\${fmt(curBal)}</div>
+    <div class="sh-val">${fmt(curBal)}</div>
     <hr class="sh-divider">
     <div class="sh-row">
-      <div><div class="sh-item-label">수입</div><div class="sh-item-val income">\${sh_income}</div></div>
-      <div style="text-align:right"><div class="sh-item-label">지출</div><div class="sh-item-val expense">-\${sh_expense}</div></div>
+      <div><div class="sh-item-label">수입</div><div class="sh-item-val income">${sh_income}</div></div>
+      <div style="text-align:right"><div class="sh-item-label">지출</div><div class="sh-item-val expense">-${sh_expense}</div></div>
     </div>
   </div>
   <div class="summary-grid">
@@ -873,13 +873,13 @@ function renderSummary(){
     Object.keys(sum_groups).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
       const [sy,sm,sd]=date.split('-');
       const dow2=days2[new Date(date).getDay()];
-      html+=`<div class="tx-date-label">\${parseInt(sm)}월 \${parseInt(sd)}일 (\${dow2})</div><div class="tx-card">`;
+      html+=`<div class="tx-date-label">${parseInt(sm)}월 ${parseInt(sd)}일 (${dow2})</div><div class="tx-card">`;
       sum_groups[date].forEach(r=>{
         const isInc=r.category==='수입';
         html+=`<div class="tx-item">
-          <div class="tx-dot \${isInc?'income-t':(r.is_cash?'cash-t':'card-t')}"></div>
-          <div class="tx-info"><div class="tx-name">\${r.recurId?'🔁 ':''}\${r.desc}</div><div class="tx-meta">\${isInc?'수입':(r.is_cash?'현금':'카드')}</div></div>
-          <div class="tx-right"><div class="tx-amount \${isInc?'pos':'neg'}">\${isInc?'+':'-'}\${fmt(r.amount)}</div></div>
+          <div class="tx-dot ${isInc?'income-t':(r.is_cash?'cash-t':'card-t')}"></div>
+          <div class="tx-info"><div class="tx-name">${r.recurId?'🔁 ':''}${r.desc}</div><div class="tx-meta">${isInc?'수입':(r.is_cash?'현금':'카드')}</div></div>
+          <div class="tx-right"><div class="tx-amount ${isInc?'pos':'neg'}">${isInc?'+':'-'}${fmt(r.amount)}</div></div>
         </div>`;
       });
       html+='</div>';
@@ -944,6 +944,7 @@ async function deleteRow(id){
   }catch(e){
     showToast('⚠️ 삭제 실패: '+e.message);
   }
+}
 
 function renderHistory(){
   makeMonthNav('history-month-nav','history-month',renderHistory);
@@ -1065,9 +1066,9 @@ document.addEventListener('click', function(e){
     return;
   }
   // 반복규칙 수정
-  const editBtn = e.target.closest('.edit-btn[data-eid]');
-  if(editBtn){
-    openEditRecurModal(editBtn.getAttribute('data-eid'));
+  const recurEditBtn = e.target.closest('.edit-btn[data-eid]');
+  if(recurEditBtn){
+    openEditRecurModal(recurEditBtn.getAttribute('data-eid'));
     return;
   }
   // 반복규칙 삭제
@@ -1473,7 +1474,7 @@ function changeCardMonth(dir){
   changeMonthNav('card-month', dir, renderCard);
 }
 
-function init(){
+async function init(){
   const today=new Date().toISOString().slice(0,10);
   document.getElementById('input-date').value=today;
 
@@ -1484,9 +1485,9 @@ function init(){
   ['summary-month','history-month'].forEach(id=>{ if(def) document.getElementById(id).value=def; });
   updateHeaderBalance(); updateInputBalance();
 }
-// 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면
+// 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면(PIN 키패드)
 if(getAuthPw() === null){
-  document.getElementById('pw-input').focus();
+  // PIN 키패드 방식이라 별도 포커스 불필요
 } else {
   document.getElementById('pw-screen').style.display = 'none';
   init();
