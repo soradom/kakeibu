@@ -765,7 +765,8 @@ function updateHeaderBalance(){
 }
 function updateInputBalance(){
   document.getElementById('current-balance-big').textContent=fmt(getCurrentBalance());
-  const last=rows[rows.length-1];
+  const real=rows.filter(r=>!r.is_future);
+  const last=real[real.length-1];
   document.getElementById('current-balance-date').textContent=last?'최근 거래: '+last.date+' · '+last.desc:'-';
 }
 
