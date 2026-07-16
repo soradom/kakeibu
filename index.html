@@ -705,7 +705,7 @@ function showToast(msg){ const t=document.getElementById('toast'); t.textContent
 
 /* ── Tabs ── */
 function showTab(name){
-  const names=['input','summary','card','history','recurring'];
+  const names=['input','summary','history','card','recurring'];
   const titles={'input':'거래 입력','summary':'이달 요약','history':'거래 내역','card':'카드 결제','recurring':'반복 관리'};
   document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
   names.forEach(n=>{ const tb=document.getElementById('tabbar-'+n); if(tb) tb.classList.toggle('active',n===name); });
@@ -749,7 +749,7 @@ async function addTransaction(){
     await apiPost('addRow', newRow);
     rows.push(newRow);
     recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
     document.getElementById('input-desc').value='';
     document.getElementById('input-amount').value=''; document.getElementById('input-amount').dataset.raw='';
     document.getElementById('input-card-date').value='';
@@ -766,18 +766,6 @@ function updateInputBalance(){
   document.getElementById('current-balance-big').textContent=fmt(getCurrentBalance());
   const last=rows[rows.length-1];
   document.getElementById('current-balance-date').textContent=last?'최근 거래: '+last.date+' · '+last.desc:'-';
-}
-
-/* ── Selects ── */
-function populateSelects(){
-  const months=getMonths();
-  ['summary-month','history-month'].forEach(id=>{
-    const el=document.getElementById(id), prev=el.value;
-    el.innerHTML='';
-    months.forEach(m=>{ const o=document.createElement('option'); o.value=m;
-      const[y,mo]=m.split('-'); o.textContent=y+'년 '+parseInt(mo)+'월'; el.appendChild(o); });
-    el.value=months.includes(prev)?prev:(months[months.length-1]||'');
-  });
 }
 
 /* ── Ledger Table ── */
@@ -1027,7 +1015,7 @@ async function saveTxEdit(){
       }
     }
     recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
     closeTxEditModal();
     renderHistory();
     showToast('✓ 거래가 수정되었습니다');
@@ -1328,7 +1316,7 @@ async function saveRecurring(){
   try{
     await apiPost('saveRecur',{rules:recurRules});
     applyRecurring(); recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); populateSelects();
+    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
     const wasEditing=!!editingRecurId;
     closeAddRecurModal(); renderRecurring();
     showToast(wasEditing?'✓ 반복 거래가 수정되었습니다':'✓ 반복 거래가 등록되었습니다');
@@ -1479,10 +1467,7 @@ async function init(){
   document.getElementById('input-date').value=today;
 
   await loadAll();
-  populateSelects(); populateCardSelect();
-  const months=getMonths(), cur=today.slice(0,7);
-  const def=months.includes(cur)?cur:(months[months.length-1]||'');
-  ['summary-month','history-month'].forEach(id=>{ if(def) document.getElementById(id).value=def; });
+  populateCardSelect();
   updateHeaderBalance(); updateInputBalance();
 }
 // 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면(PIN 키패드)
