@@ -1097,6 +1097,7 @@ document.addEventListener('change', function(e){
 let dragState = null;
 
 document.addEventListener('pointerdown', function(e){
+  if(dragState) return; // 이미 드래그 중이면 새 드래그를 또 시작하지 않음
   const handle = e.target.closest('.recur-drag');
   if(!handle) return;
   const item = handle.closest('.recur-item');
@@ -1123,6 +1124,11 @@ document.addEventListener('pointerdown', function(e){
   item.addEventListener('pointerup', onRecurDragEnd);
   item.addEventListener('pointercancel', onRecurDragEnd);
 });
+
+// pointerCapture가 어떤 이유로든 실패해 item에서 pointerup/cancel을 못 받는 경우를 대비한 안전장치
+// (없으면 dragState가 영원히 안 풀려서 이후 드래그가 전부 막힐 수 있음)
+document.addEventListener('pointerup', function(e){ if(dragState) onRecurDragEnd(e); }, true);
+document.addEventListener('pointercancel', function(e){ if(dragState) onRecurDragEnd(e); }, true);
 
 function onRecurDragMove(e){
   if(!dragState) return;
