@@ -1089,6 +1089,18 @@ document.addEventListener('change', function(e){
   toggleRecur(rid, chk.checked);
 });
 
+// saveRecur는 "시트 전체 지우고 다시 쓰기" 방식이라, 요청 두 개가
+// 겹쳐서 동시에 실행되면 서로 clearContents/appendRow가 뒤섞여
+// 데이터가 중복되거나 손상될 수 있음. 그래서 모든 saveRecur 호출을
+// 이 큐를 통해서만 하도록 강제해 항상 한 번에 하나씩만, 순서대로
+// 나가도록 함 (드래그를 연속으로 여러 번 해도 안전).
+let recurSaveChain = Promise.resolve();
+function queueSaveRecur(){
+  const p = recurSaveChain.then(() => apiPost('saveRecur', {rules: recurRules}));
+  recurSaveChain = p.catch(() => {}); // 실패해도 체인은 계속 이어지게
+  return p;
+}
+
 /* ── 반복규칙 드래그 정렬 ── */
 // 드래그 중인 항목은 화면에서 position:fixed로 포인터를 따라다니고,
 // 원래 리스트 자리에는 placeholder(빈 칸)를 넣어 순서만 옮긴다.
@@ -1165,7 +1177,7 @@ async function onRecurDragEnd(e){
   recurRules.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
   renderRecurring();
   try{
-    await apiPost('saveRecur',{rules:recurRules});
+    await queueSaveRecur();
   }catch(err){
     showToast('⚠️ 순서 저장 실패: '+err.message);
   }
@@ -1212,7 +1224,7 @@ async function toggleRecur(id, enabled){
   if(!r) return;
   r.enabled=enabled;
   try{
-    await apiPost('saveRecur',{rules:recurRules});
+    await queueSaveRecur();
     renderRecurring();
     showToast(enabled?'✓ 반복 거래가 활성화되었습니다':'반복 거래가 중지되었습니다');
   }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
@@ -1221,7 +1233,7 @@ async function toggleRecur(id, enabled){
 async function deleteRecur(id){
   recurRules=recurRules.filter(r=>r.id!==id);
   try{
-    await apiPost('saveRecur',{rules:recurRules});
+    await queueSaveRecur();
     renderRecurring();
     showToast('삭제되었습니다');
   }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
@@ -1322,7 +1334,7 @@ async function saveRecurring(){
   }
   if(btn) btn.disabled=true;
   try{
-    await apiPost('saveRecur',{rules:recurRules});
+    await queueSaveRecur();
     applyRecurring(); recalcBalances();
     populateCardSelect(); updateHeaderBalance(); updateInputBalance();
     const wasEditing=!!editingRecurId;
