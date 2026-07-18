@@ -1110,7 +1110,7 @@ document.addEventListener('pointerdown', function(e){
   placeholder.style.height = rect.height + 'px';
   item.parentElement.insertBefore(placeholder, item);
 
-  dragState = { item, placeholder, offsetY: e.clientY - rect.top };
+  dragState = { item, placeholder, offsetY: e.clientY - rect.top, pointerId: e.pointerId };
 
   item.classList.add('dragging');
   item.style.position = 'fixed';
@@ -1119,19 +1119,16 @@ document.addEventListener('pointerdown', function(e){
   item.style.width = rect.width + 'px';
   item.style.zIndex = 300;
 
-  item.setPointerCapture(e.pointerId);
-  item.addEventListener('pointermove', onRecurDragMove);
-  item.addEventListener('pointerup', onRecurDragEnd);
-  item.addEventListener('pointercancel', onRecurDragEnd);
+  // setPointerCapture는 일부 모바일 브라우저(iOS Safari 등)에서 불안정하게
+  // 동작하는 경우가 있어, item에 캡처하는 대신 document에 직접 리스너를
+  // 붙였다가 드래그가 끝나면 떼는 방식으로 구현 (더 안정적)
+  document.addEventListener('pointermove', onRecurDragMove);
+  document.addEventListener('pointerup', onRecurDragEnd);
+  document.addEventListener('pointercancel', onRecurDragEnd);
 });
 
-// pointerCapture가 어떤 이유로든 실패해 item에서 pointerup/cancel을 못 받는 경우를 대비한 안전장치
-// (없으면 dragState가 영원히 안 풀려서 이후 드래그가 전부 막힐 수 있음)
-document.addEventListener('pointerup', function(e){ if(dragState) onRecurDragEnd(e); }, true);
-document.addEventListener('pointercancel', function(e){ if(dragState) onRecurDragEnd(e); }, true);
-
 function onRecurDragMove(e){
-  if(!dragState) return;
+  if(!dragState || e.pointerId !== dragState.pointerId) return;
   const { item, placeholder, offsetY } = dragState;
   item.style.top = (e.clientY - offsetY) + 'px';
 
@@ -1146,11 +1143,11 @@ function onRecurDragMove(e){
 }
 
 async function onRecurDragEnd(e){
-  if(!dragState) return;
+  if(!dragState || e.pointerId !== dragState.pointerId) return;
   const { item, placeholder } = dragState;
-  item.removeEventListener('pointermove', onRecurDragMove);
-  item.removeEventListener('pointerup', onRecurDragEnd);
-  item.removeEventListener('pointercancel', onRecurDragEnd);
+  document.removeEventListener('pointermove', onRecurDragMove);
+  document.removeEventListener('pointerup', onRecurDragEnd);
+  document.removeEventListener('pointercancel', onRecurDragEnd);
 
   placeholder.parentElement.insertBefore(item, placeholder);
   placeholder.remove();
