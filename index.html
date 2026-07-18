@@ -218,9 +218,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 /* ── 모달 ── */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
 .modal-backdrop.hidden{display:none}
-.modal{background:#fff;border-radius:22px 22px 0 0;padding:8px 20px 24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.modal{background:#fff;border-radius:22px 22px 0 0;padding:0 20px 24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.modal-sticky-top{position:sticky;top:0;background:#fff;z-index:2;padding-top:8px}
 .modal-handle{width:36px;height:4px;background:#e0e1e5;border-radius:2px;margin:0 auto 18px}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:sticky;top:0;background:#fff;padding:10px 0;margin-top:-10px;z-index:2}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .modal-title{font-size:17px;font-weight:700;color:#1a1a18}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#9297a1;line-height:1;padding:4px}
 .modal .form-row{margin-bottom:16px}
@@ -414,10 +415,12 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 <!-- 반복 거래 모달 -->
 <div class="modal-backdrop hidden" id="recur-modal">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-header">
-      <div class="modal-title" id="recur-modal-title">반복 거래 추가</div>
-      <button class="modal-close" onclick="closeAddRecurModal()">✕</button>
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title" id="recur-modal-title">반복 거래 추가</div>
+        <button class="modal-close" onclick="closeAddRecurModal()">✕</button>
+      </div>
     </div>
     <div class="form-row">
       <label>구분</label>
@@ -450,10 +453,12 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 <!-- 거래 수정 모달 -->
 <div class="modal-backdrop hidden" id="tx-edit-modal">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-header">
-      <div class="modal-title">거래 수정</div>
-      <button class="modal-close" onclick="closeTxEditModal()">✕</button>
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">거래 수정</div>
+        <button class="modal-close" onclick="closeTxEditModal()">✕</button>
+      </div>
     </div>
     <div class="form-row"><label>내역</label><input type="text" id="tx-edit-desc"></div>
     <div class="form-row"><label>금액 (원)</label><input type="text" id="tx-edit-amount" inputmode="numeric"></div>
@@ -464,10 +469,12 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 <!-- 검색 모달 -->
 <div class="modal-backdrop hidden" id="search-modal">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-header">
-      <div class="modal-title">통합 검색</div>
-      <button class="modal-close" onclick="closeSearchModal()">✕</button>
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">통합 검색</div>
+        <button class="modal-close" onclick="closeSearchModal()">✕</button>
+      </div>
     </div>
     <div class="search-input-wrap">
       <input type="search" id="search-input" placeholder="내역, 카테고리로 검색" oninput="renderSearchResults()">
