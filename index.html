@@ -87,9 +87,12 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .pay-chips{display:flex;gap:8px}
 .pay-chip{padding:8px 18px;border:1.5px solid #e0e1e5;border-radius:20px;background:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#9297a1;transition:all .2s}
 .pay-chip.active{border-color:#4472c4;background:#f0f4fc;color:#4472c4}
-.save-btn{width:100%;padding:15px;background:#4472c4;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:4px}
+.save-btn{width:100%;padding:15px;background:#4472c4;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px}
 .save-btn:hover{opacity:.9}
 .save-btn:active{transform:scale(.98)}
+.save-btn:disabled{opacity:.65;cursor:not-allowed}
+.btn-spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:btn-spin .7s linear infinite;flex-shrink:0}
+@keyframes btn-spin{to{transform:rotate(360deg)}}
 
 /* ── 월 네비게이터 ── */
 .month-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:13px 16px;margin:0 20px 14px}
@@ -217,7 +220,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .modal-backdrop.hidden{display:none}
 .modal{background:#fff;border-radius:22px 22px 0 0;padding:8px 20px 24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
 .modal-handle{width:36px;height:4px;background:#e0e1e5;border-radius:2px;margin:0 auto 18px}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:sticky;top:0;background:#fff;padding:10px 0;margin-top:-10px;z-index:2}
 .modal-title{font-size:17px;font-weight:700;color:#1a1a18}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#9297a1;line-height:1;padding:4px}
 .modal .form-row{margin-bottom:16px}
@@ -348,7 +351,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
       </div>
     </div>
     <div style="display:none"><input type="date" id="input-card-date"></div>
-    <button class="save-btn" onclick="addTransaction()">저장하기</button>
+    <button class="save-btn" id="input-save-btn" onclick="addTransaction()">저장하기</button>
   </div>
 </div>
 
@@ -707,6 +710,21 @@ function getMonths(){ return[...new Set(rows.filter(r=>!r.is_future).map(r=>r.da
 function getMonthRows(ym){ return rows.filter(r=>r.date.startsWith(ym) && !r.is_future); }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
 
+/* ── 저장 버튼 로딩 상태 ── */
+// 저장 중에는 버튼을 비활성화하고 스피너+문구를 보여줘서, 저장되는 동안
+// 사용자가 버튼을 또 눌러 중복 요청을 보내는 것을 막는다.
+function setBtnLoading(btn, loading, loadingText){
+  if(!btn) return;
+  if(loading){
+    if(btn.dataset.origHtml===undefined) btn.dataset.origHtml=btn.innerHTML;
+    btn.disabled=true;
+    btn.innerHTML='<span class="btn-spinner"></span>'+(loadingText||'저장 중...');
+  } else {
+    btn.disabled=false;
+    if(btn.dataset.origHtml!==undefined){ btn.innerHTML=btn.dataset.origHtml; delete btn.dataset.origHtml; }
+  }
+}
+
 /* ── Tabs ── */
 function showTab(name){
   const names=['input','summary','history','card','recurring'];
@@ -733,6 +751,8 @@ function setPayment(p){ currentPayment=p;
 
 }
 async function addTransaction(){
+  const btn=document.getElementById('input-save-btn');
+  if(btn && btn.disabled) return;
   const date=document.getElementById('input-date').value;
   const desc=document.getElementById('input-desc').value.trim();
   const amount=getRawAmount('input-amount');
@@ -749,6 +769,7 @@ async function addTransaction(){
     desc:isCash?'(현금)'+desc:desc,
     amount, balance:0, card_date:cardDate||'', is_cash:isCash
   };
+  setBtnLoading(btn, true);
   try{
     await apiPost('addRow', newRow);
     rows.push(newRow);
@@ -759,6 +780,7 @@ async function addTransaction(){
     document.getElementById('input-card-date').value='';
     showToast('✓ 거래가 추가되었습니다');
   }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+  finally{ setBtnLoading(btn, false); }
 }
 
 /* ── Header & Input balance ── */
@@ -1007,7 +1029,7 @@ async function saveTxEdit(){
   const prevDesc = r.desc, prevAmount = r.amount;
   r.desc = newDesc; r.amount = amount;
 
-  if(btn) btn.disabled = true;
+  setBtnLoading(btn, true);
   try{
     try{
       await apiPost('updateRow', {id:r.id, desc:newDesc, amount});
@@ -1028,7 +1050,7 @@ async function saveTxEdit(){
     r.desc = prevDesc; r.amount = prevAmount;
     showToast('⚠️ 저장 실패: '+e.message);
   } finally {
-    if(btn) btn.disabled = false;
+    setBtnLoading(btn, false);
   }
 }
 
@@ -1329,10 +1351,15 @@ async function saveRecurring(){
     // 이 규칙에서 생성된 기존 가상 거래는 지우고 새 값으로 다시 생성
     rows=rows.filter(r=>r.recurId!==editingRecurId);
   } else {
+    // 내역+금액+구분이 같은 반복 거래가 이미 있으면 한 번 더 확인
+    const dup = recurRules.some(r=>r.desc===ruleData.desc && r.amount===ruleData.amount && r.category===ruleData.category);
+    if(dup && !confirm(`이미 같은 내용의 반복 거래가 있습니다.\n"${ruleData.desc}" ${fmt(ruleData.amount)}\n\n그래도 추가할까요?`)){
+      return;
+    }
     addedRule={ id:'r'+Date.now(), enabled:true, ...ruleData };
     recurRules.push(addedRule);
   }
-  if(btn) btn.disabled=true;
+  setBtnLoading(btn, true);
   try{
     await queueSaveRecur();
     applyRecurring(); recalcBalances();
@@ -1349,7 +1376,7 @@ async function saveRecurring(){
     }
     showToast('⚠️ 저장 실패: '+e.message);
   } finally {
-    if(btn) btn.disabled=false;
+    setBtnLoading(btn, false);
   }
 }
 
