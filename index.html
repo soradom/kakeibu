@@ -21,9 +21,6 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 
 /* ── PIN 잠금 화면 ── */
 #pw-screen{position:fixed;inset:0;background:#1a1a18;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
-.pin-status-bar{height:44px;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
-.pin-status-time{font-size:13px;font-weight:600;color:#fff}
-.pin-status-icons{display:flex;align-items:center;gap:6px}
 .pin-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:0 30px;width:100%}
 .pin-logo{width:56px;height:56px;border-radius:50%;background:#4472c4;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff}
 .pin-title{font-size:17px;font-weight:700;color:#fff}
@@ -31,7 +28,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .pin-dots{display:flex;gap:16px}
 .pin-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .15s}
 .pin-dot.filled{background:#fff}
-.pin-keypad{width:100%;padding:0 40px 34px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 0}
+.pin-keypad{width:100%;padding:0 0 34px;display:grid;grid-template-columns:repeat(3,72px);justify-content:center;gap:18px 24px}
 .pin-key{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.08);border:none;font-family:inherit;font-size:22px;font-weight:400;color:#fff;cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .pin-key:hover{background:rgba(255,255,255,.16)}
 .pin-key:active{background:rgba(255,255,255,.22)}
@@ -211,9 +208,6 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .recur-toggle .slider:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .recur-toggle input:checked+.slider{background:#4472c4}
 .recur-toggle input:checked+.slider:before{transform:translateX(15px)}
-.recur-edit-btn,.recur-del-btn{background:none;border:none;color:#c8cad0;font-size:14px;cursor:pointer;padding:4px;border-radius:6px}
-.recur-edit-btn:hover{color:#4472c4;background:#f0f4fc}
-.recur-del-btn:hover{color:#e05c5c;background:#fff3f3}
 
 /* ── 모달 ── */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
@@ -269,13 +263,6 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 
 <!-- PIN 잠금 화면 -->
 <div id="pw-screen">
-  <div class="pin-status-bar">
-    <span class="pin-status-time">9:30</span>
-    <div class="pin-status-icons">
-      <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="6" width="3" height="5" rx="1" fill="#fff"/><rect x="4.5" y="4" width="3" height="7" rx="1" fill="#fff"/><rect x="9" y="2" width="3" height="9" rx="1" fill="#fff"/><rect x="13" y="0" width="3" height="11" rx="1" fill="#fff"/></svg>
-      <div style="width:22px;height:11px;border:1.4px solid #fff;border-radius:3px;padding:1.4px;"><div style="width:70%;height:100%;background:#fff;border-radius:1px;"></div></div>
-    </div>
-  </div>
   <div class="pin-body">
     <div class="pin-logo">₩</div>
     <div class="pin-title">가계부 잠금 해제</div>
@@ -370,10 +357,12 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 
 <!-- 카드 결제 탭 -->
 <div id="tab-card" class="panel">
-  <div class="month-nav" style="margin:14px 20px 14px">
-    <button class="month-nav-btn" onclick="changeCardMonth(-1)">‹</button>
-    <select id="card-month" class="month-nav select" onchange="renderCard()" style="font-size:15px;font-weight:700;color:#1a1a18;background:none;border:none;outline:none;cursor:pointer"></select>
-    <button class="month-nav-btn" onclick="changeCardMonth(1)">›</button>
+  <div style="padding:0 0 8px">
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeCardMonth(-1)">‹</button>
+      <select id="card-month" class="month-nav select" onchange="renderCard()" style="font-size:15px;font-weight:700;color:#1a1a18;background:none;border:none;outline:none;cursor:pointer"></select>
+      <button class="month-nav-btn" onclick="changeCardMonth(1)">›</button>
+    </div>
   </div>
   <div id="card-content"></div>
 </div>
@@ -872,19 +861,12 @@ function renderSummary(){
     <div class="summary-card"><div class="sc-label">카드 사용</div><div class="sc-val card-c">${fmt(cardExp)}</div></div>
     <div class="summary-card"><div class="sc-label">현금 사용</div><div class="sc-val cash-c">${fmt(cashExp)}</div></div>
   </div>`;
-  if(income>0) html+=`<div style="margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px">
-      <span>수입 대비 지출</span><span style="font-weight:700;color:${over?'#c03030':'#0d8a56'}">${Math.round(totalExp/income*100)}%</span>
-    </div>
-    <div style="background:#e8e7e2;border-radius:4px;height:8px;overflow:hidden">
-      <div style="height:100%;border-radius:4px;background:${over?'#c03030':'#0d8a56'};width:${pct}%"></div>
-    </div></div>`;
   html+=`<div class="usable-card">
     <div class="uc-label">💰 사용 가능 잔액</div>
     <div class="uc-val" style="color:${usable<0?'#ff6b6b':'#fff'}">${fmt(usable)}</div>
     <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
-  if(thisCardDue>0) html+=`<div class="summary-card" style="margin-bottom:14px">
+  if(thisCardDue>0) html+=`<div class="summary-card" style="margin:0 20px 14px">
     <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
     <div class="sc-val expense" style="font-size:16px">${fmt(thisCardDue)}</div>
   </div>`;
@@ -1088,7 +1070,7 @@ document.addEventListener('click', function(e){
     return;
   }
   // 반복규칙 수정
-  const recurEditBtn = e.target.closest('.edit-btn[data-eid]');
+  const recurEditBtn = e.target.closest('.tx-edit-btn[data-eid]');
   if(recurEditBtn){
     openEditRecurModal(recurEditBtn.getAttribute('data-eid'));
     return;
@@ -1104,7 +1086,7 @@ document.addEventListener('click', function(e){
       recurDelBtn.textContent = '확인';
       recurDelBtn.style.color = '#c03030';
       recurDelBtn.style.fontWeight = '700';
-      setTimeout(()=>{ if(recurDelBtn.dataset.confirm) { recurDelBtn.dataset.confirm=''; recurDelBtn.textContent='×'; recurDelBtn.style.color=''; recurDelBtn.style.fontWeight=''; } }, 2500);
+      setTimeout(()=>{ if(recurDelBtn.dataset.confirm) { recurDelBtn.dataset.confirm=''; recurDelBtn.textContent='✕'; recurDelBtn.style.color=''; recurDelBtn.style.fontWeight=''; } }, 2500);
     }
     return;
   }
@@ -1239,8 +1221,8 @@ function renderRecurring(){
               <input type="checkbox" ${r.enabled?'checked':''} data-rid="${r.id}" class="recur-chk">
               <span class="slider"></span>
             </label>
-            <button class="edit-btn" data-eid="${r.id}" title="수정">✎</button>
-            <button class="recur-del-btn" data-rid="${r.id}" title="삭제">×</button>
+            <button class="tx-edit-btn" data-eid="${r.id}" title="수정">✎</button>
+            <button class="tx-del-btn recur-del-btn" data-rid="${r.id}" title="삭제">✕</button>
           </div>
         </div>
       </div>
