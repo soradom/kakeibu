@@ -40,6 +40,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .header{background:#f1f2f5;padding:16px 20px 0;position:sticky;top:0;z-index:100}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .header-title{font-size:22px;font-weight:800;color:#1a1a18;letter-spacing:-0.3px}
+.header-balance{font-size:12px;font-weight:600;color:#4472c4;margin-top:3px}
 .header-right{display:flex;align-items:center;gap:8px}
 .search-chip{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0e1e5;border-radius:20px;padding:7px 13px;font-size:13px;color:#9297a1;cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
 .search-chip:hover{border-color:#4472c4;color:#4472c4}
@@ -294,7 +295,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 <!-- 헤더 -->
 <div class="header">
   <div class="header-top">
-    <div class="header-title" id="header-title">거래 입력</div>
+    <div>
+      <div class="header-title" id="header-title">거래 입력</div>
+      <div class="header-balance">현재 잔액 <span id="header-balance">-</span></div>
+    </div>
     <div class="header-right">
       <button class="search-chip" onclick="openSearchModal()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -357,13 +361,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 
 <!-- 카드 결제 탭 -->
 <div id="tab-card" class="panel">
-  <div style="padding:0 0 8px">
-    <div class="month-nav">
-      <button class="month-nav-btn" onclick="changeCardMonth(-1)">‹</button>
-      <select id="card-month" class="month-nav select" onchange="renderCard()" style="font-size:15px;font-weight:700;color:#1a1a18;background:none;border:none;outline:none;cursor:pointer"></select>
-      <button class="month-nav-btn" onclick="changeCardMonth(1)">›</button>
-    </div>
-  </div>
+  <div style="padding:0 0 8px" id="card-month-nav"></div>
   <div id="card-content"></div>
 </div>
 
@@ -729,7 +727,7 @@ function showTab(name){
   names.forEach(n=>{ const tb=document.getElementById('tabbar-'+n); if(tb) tb.classList.toggle('active',n===name); });
   const ht=document.getElementById('header-title'); if(ht) ht.textContent=titles[name]||'가계부';
   if(name==='summary') renderSummary();
-  if(name==='card'){ populateCardSelect(); renderCard(); }
+  if(name==='card'){ renderCard(); }
   if(name==='history') renderHistory();
   if(name==='recurring') renderRecurring();
 }
@@ -770,7 +768,7 @@ async function addTransaction(){
     await apiPost('addRow', newRow);
     rows.push(newRow);
     recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
+    updateHeaderBalance(); updateInputBalance();
     document.getElementById('input-desc').value='';
     document.getElementById('input-amount').value=''; document.getElementById('input-amount').dataset.raw='';
     document.getElementById('input-card-date').value='';
@@ -863,7 +861,7 @@ function renderSummary(){
   </div>`;
   html+=`<div class="usable-card">
     <div class="uc-label">💰 사용 가능 잔액</div>
-    <div class="uc-val" style="color:${usable<0?'#ff6b6b':'#fff'}">${fmt(usable)}</div>
+    <div class="uc-val${usable<0?' danger':''}">${fmt(usable)}</div>
     <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
   if(thisCardDue>0) html+=`<div class="summary-card" style="margin:0 20px 14px">
@@ -893,19 +891,11 @@ function renderSummary(){
 }
 
 /* ── Card ── */
-function populateCardSelect(){
-  const el=document.getElementById('card-month'); if(!el) return;
-  const prev=el.value;
-  const cardMonths=[...new Set(rows.filter(r=>r.card_date&&r.category==='지출').map(r=>r.card_date.slice(0,7)))].sort();
-  el.innerHTML='';
-  cardMonths.forEach(m=>{ const o=document.createElement('option'); o.value=m;
-    const[y,mo]=m.split('-'); o.textContent=y+'년 '+parseInt(mo)+'월 5일 결제'; el.appendChild(o); });
-  const today=new Date().toISOString().slice(0,7);
-  const def=cardMonths.find(m=>m>=today)||cardMonths[cardMonths.length-1]||'';
-  el.value=cardMonths.includes(prev)?prev:def;
-}
-
 function renderCard(){
+  const cardMonths=[...new Set(rows.filter(r=>r.card_date&&r.category==='지출').map(r=>r.card_date.slice(0,7)))].sort();
+  const today0=new Date().toISOString().slice(0,7);
+  const defaultVal=cardMonths.find(m=>m>=today0)||cardMonths[cardMonths.length-1]||'';
+  makeMonthNav('card-month-nav','card-month',renderCard,{months:cardMonths, defaultVal, label:(y,m)=>`${y}년 ${parseInt(m)}월 5일 결제`});
   const ym_=document.getElementById('card-month')?.value; if(!ym_)return;
   const today=new Date().toISOString().slice(0,10);
   const [y,mo]=ym_.split('-');
@@ -923,7 +913,7 @@ function renderCard(){
   if(items.length){
     const cg={};
     items.forEach(r=>{ if(!cg[r.date]) cg[r.date]=[]; cg[r.date].push(r); });
-    Object.keys(cg).sort().forEach(date=>{
+    Object.keys(cg).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
       const[cy,cm,cd]=date.split('-');
       html+=`<div class="card-date-label">${parseInt(cm)}월 ${parseInt(cd)}일</div><div class="card-item-card">`;
       cg[date].forEach(r=>{ html+=`<div class="card-item">
@@ -943,7 +933,7 @@ async function deleteRow(id){
     await apiPost('deleteRow', {id});
     rows=rows.filter(r=>r.id!==id);
     recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance(); renderHistory();
+    updateHeaderBalance(); updateInputBalance(); renderHistory();
     showToast('삭제되었습니다');
   }catch(e){
     showToast('⚠️ 삭제 실패: '+e.message);
@@ -1031,7 +1021,7 @@ async function saveTxEdit(){
       }
     }
     recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
+    updateHeaderBalance(); updateInputBalance();
     closeTxEditModal();
     renderHistory();
     showToast('✓ 거래가 수정되었습니다');
@@ -1352,7 +1342,7 @@ async function saveRecurring(){
   try{
     await queueSaveRecur();
     applyRecurring(); recalcBalances();
-    populateCardSelect(); updateHeaderBalance(); updateInputBalance();
+    updateHeaderBalance(); updateInputBalance();
     const wasEditing=!!editingRecurId;
     closeAddRecurModal(); renderRecurring();
     showToast(wasEditing?'✓ 반복 거래가 수정되었습니다':'✓ 반복 거래가 등록되었습니다');
@@ -1467,16 +1457,16 @@ document.addEventListener('click', function(e){
 });
 
 /* ── 월 네비게이터 ── */
-function makeMonthNav(containerId, selectId, onChangeFunc){
+function makeMonthNav(containerId, selectId, onChangeFunc, opts){
   const el = document.getElementById(containerId);
   if(!el) return;
-  const months = getMonths();
-  const selVal = document.getElementById(selectId)?.value || months[months.length-1] || '';
-  const [y,m] = selVal ? selVal.split('-') : ['',''];
+  opts = opts || {};
+  const months = opts.months || getMonths();
+  const selVal = document.getElementById(selectId)?.value || (opts.defaultVal!==undefined ? opts.defaultVal : months[months.length-1]) || '';
   el.innerHTML = `<div class="month-nav">
     <button class="month-nav-btn" onclick="changeMonthNav('${selectId}',-1,${onChangeFunc.name})">‹</button>
     <select id="${selectId}" onchange="${onChangeFunc.name}()" style="font-size:15px;font-weight:700;color:#1a1a18;background:none;border:none;outline:none;cursor:pointer;text-align:center">
-      ${months.map(mo=>{ const[y2,m2]=mo.split('-'); return `<option value="${mo}" ${mo===selVal?'selected':''}>${y2}년 ${parseInt(m2)}월</option>`; }).join('')}
+      ${months.map(mo=>{ const[y2,m2]=mo.split('-'); const label=opts.label?opts.label(y2,m2):`${y2}년 ${parseInt(m2)}월`; return `<option value="${mo}" ${mo===selVal?'selected':''}>${label}</option>`; }).join('')}
     </select>
     <button class="month-nav-btn" onclick="changeMonthNav('${selectId}',1,${onChangeFunc.name})">›</button>
   </div>`;
@@ -1501,7 +1491,6 @@ async function init(){
   document.getElementById('input-date').value=today;
 
   await loadAll();
-  populateCardSelect();
   updateHeaderBalance(); updateInputBalance();
 }
 // 세션에 인증 정보 있으면 바로 시작, 없으면 비밀번호 화면(PIN 키패드)
