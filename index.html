@@ -912,9 +912,11 @@ function renderCard(){
   if(items.length){
     const cg={};
     items.forEach(r=>{ if(!cg[r.date]) cg[r.date]=[]; cg[r.date].push(r); });
+    const days3=['일','월','화','수','목','금','토'];
     Object.keys(cg).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
       const[cy,cm,cd]=date.split('-');
-      html+=`<div class="card-date-label">${parseInt(cm)}월 ${parseInt(cd)}일</div><div class="card-item-card">`;
+      const dow3=days3[new Date(date).getDay()];
+      html+=`<div class="card-date-label">${parseInt(cm)}월 ${parseInt(cd)}일 (${dow3})</div><div class="card-item-card">`;
       cg[date].forEach(r=>{ html+=`<div class="card-item">
         <div class="card-item-dot"></div>
         <div class="card-item-info"><div class="card-item-name">${r.recurId?'🔁 ':''}${r.desc}</div></div>
