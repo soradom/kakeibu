@@ -41,11 +41,11 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .header.stuck{border-bottom-color:#e0e1e5;box-shadow:0 4px 10px rgba(0,0,0,.06)}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .header-title{font-size:22px;font-weight:800;color:#1a1a18;letter-spacing:-0.3px}
-.header-balance{font-size:12px;font-weight:600;color:#4472c4;margin-top:3px}
 .header-right{display:flex;align-items:center;gap:8px}
-.search-chip{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0e1e5;border-radius:20px;padding:7px 13px;font-size:13px;color:#9297a1;cursor:pointer;font-family:inherit;font-weight:500;transition:all .15s}
+.header-balance-chip{display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #e0e1e5;border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700;color:#4472c4;white-space:nowrap}
+.search-chip{display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;background:#fff;border:1px solid #e0e1e5;border-radius:50%;color:#9297a1;cursor:pointer;padding:0;transition:all .15s}
 .search-chip:hover{border-color:#4472c4;color:#4472c4}
-.search-chip svg{width:14px;height:14px}
+.search-chip svg{width:16px;height:16px}
 
 /* ── 하단 탭바 ── */
 .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e8e9ec;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
@@ -297,14 +297,11 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 <!-- 헤더 -->
 <div class="header">
   <div class="header-top">
-    <div>
-      <div class="header-title" id="header-title">거래 입력</div>
-      <div class="header-balance">현재 잔액 <span id="header-balance">-</span></div>
-    </div>
+    <div class="header-title" id="header-title">거래 입력</div>
     <div class="header-right">
-      <button class="search-chip" onclick="openSearchModal()">
+      <div class="header-balance-chip">현재 잔액 <span id="header-balance">-</span></div>
+      <button class="search-chip" onclick="openSearchModal()" title="통합검색">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        통합검색
       </button>
     </div>
   </div>
