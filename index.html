@@ -138,6 +138,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .tx-card{background:#fff;border-radius:14px;margin:0 20px 10px;overflow:hidden}
 .tx-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f5f6f8;cursor:default}
 .tx-item:last-child{border-bottom:none}
+.tx-item.row-flash{animation:row-flash 2.3s ease-out}
 .tx-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .tx-dot.income-t{background:#4472c4}
 .tx-dot.card-t{background:#8e7ce6}
@@ -965,7 +966,7 @@ function renderHistory(){
       const ri=r.recurId?'🔁 ':'';
       const delBtn=r.id?`<button class="tx-del-btn" data-id="${r.id}" title="삭제">✕</button>`:'';
       const editBtn=r.id?`<button class="tx-edit-btn" data-edit-id="${r.id}" title="수정">✎</button>`:'';
-      html+=`<div class="tx-item">
+      html+=`<div class="tx-item" data-id="${r.id}">
         <div class="tx-dot ${dotCls}"></div>
         <div class="tx-info"><div class="tx-name">${ri}${r.desc}</div><div class="tx-meta">${typeLabel}</div></div>
         <div class="tx-right">
@@ -1431,7 +1432,7 @@ function renderSearchResults(resetPage=true){
 
 function highlightRow(id){
   requestAnimationFrame(()=>{
-    const tr=document.querySelector(`#history-content tr[data-id="${id}"]`);
+    const tr=document.querySelector(`#history-content .tx-item[data-id="${id}"]`);
     if(!tr) return;
     tr.scrollIntoView({behavior:'smooth', block:'center'});
     tr.classList.remove('row-flash');
@@ -1445,10 +1446,13 @@ document.addEventListener('click', function(e){
   const hit=e.target.closest('.search-hit');
   if(!hit) return;
   if(hit.dataset.navMonth){
-    const sel=document.getElementById('history-month');
-    if([...sel.options].some(o=>o.value===hit.dataset.navMonth)) sel.value=hit.dataset.navMonth;
     closeSearchModal();
     showTab('history');
+    const sel=document.getElementById('history-month');
+    if(sel && sel.value!==hit.dataset.navMonth && [...sel.options].some(o=>o.value===hit.dataset.navMonth)){
+      sel.value=hit.dataset.navMonth;
+      renderHistory();
+    }
     if(hit.dataset.navId) highlightRow(hit.dataset.navId);
   } else if(hit.dataset.navRecur){
     closeSearchModal();
