@@ -37,7 +37,8 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .pin-error{font-size:13px;color:#ff6b6b;min-height:20px;text-align:center}
 
 /* ── 헤더 ── */
-.header{background:#f1f2f5;padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.header{background:#f1f2f5;padding:16px 20px 14px;position:sticky;top:0;z-index:100;border-bottom:1px solid transparent;transition:border-color .15s}
+.header.stuck{border-bottom-color:#e0e1e5}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .header-title{font-size:22px;font-weight:800;color:#1a1a18;letter-spacing:-0.3px}
 .header-balance{font-size:12px;font-weight:600;color:#4472c4;margin-top:3px}
@@ -1504,6 +1505,14 @@ if(getAuthPw() === null){
   document.getElementById('pw-screen').style.display = 'none';
   init();
 }
+
+/* ── 헤더 스티키 하단선: 스크롤이 맨 위일 때는 선을 숨기고, 스크롤되면 표시 ── */
+(function(){
+  const headerEl = document.querySelector('.header');
+  function updateHeaderStuck(){ headerEl.classList.toggle('stuck', window.scrollY > 0); }
+  window.addEventListener('scroll', updateHeaderStuck, {passive:true});
+  updateHeaderStuck();
+})();
 
 /* ── 금액 입력 콤마 포맷 ── */
 function formatAmountInput(el){
