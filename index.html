@@ -463,6 +463,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
         <button class="modal-close" onclick="closeTxEditModal()">✕</button>
       </div>
     </div>
+    <div class="form-row"><label>날짜</label><input type="date" id="tx-edit-date"></div>
     <div class="form-row"><label>내역</label><input type="text" id="tx-edit-desc"></div>
     <div class="form-row"><label>금액 (원)</label><input type="text" id="tx-edit-amount" inputmode="numeric"></div>
     <button class="save-btn" id="tx-edit-save-btn" onclick="saveTxEdit()">저장</button>
@@ -1081,6 +1082,7 @@ function openTxEditModal(id){
   editingTxId = id;
   let descVal = r.desc;
   if(r.is_cash && descVal.startsWith('(현금)')) descVal = descVal.slice(4);
+  document.getElementById('tx-edit-date').value = r.date;
   document.getElementById('tx-edit-desc').value = descVal;
   document.getElementById('tx-edit-amount').value = r.amount.toLocaleString('ko-KR');
   document.getElementById('tx-edit-amount').dataset.raw = String(r.amount);
@@ -1093,19 +1095,29 @@ async function saveTxEdit(){
   if(btn && btn.disabled) return;
   const r = rows.find(x=>x.id===editingTxId);
   if(!r){ showToast('수정할 거래를 찾을 수 없습니다'); return; }
+  const dateInput = document.getElementById('tx-edit-date').value;
   const descInput = document.getElementById('tx-edit-desc').value.trim();
   const amount = getRawAmount('tx-edit-amount');
+  if(!dateInput){ showToast('날짜를 입력해주세요'); return; }
   if(!descInput){ showToast('내역을 입력해주세요'); return; }
   if(!amount||amount<=0){ showToast('금액을 입력해주세요'); return; }
 
   const newDesc = r.is_cash ? '(현금)'+descInput : descInput;
-  const prevDesc = r.desc, prevAmount = r.amount;
-  r.desc = newDesc; r.amount = amount;
+  const prevDesc=r.desc, prevAmount=r.amount, prevDate=r.date, prevCardDate=r.card_date, prevIsFuture=r.is_future;
+  const today = new Date().toISOString().slice(0,10);
+  r.desc = newDesc; r.amount = amount; r.date = dateInput;
+  r.is_future = dateInput > today;
+  if(r.category==='지출' && !r.is_cash){
+    // 카드 결제 기준: 24일 이후 거래는 다다음달 5일 결제로 재계산
+    const day=parseInt(dateInput.slice(8,10),10);
+    const nextMo=addMonth(dateInput.slice(0,7));
+    r.card_date=(day>=24?addMonth(nextMo):nextMo)+'-05';
+  }
 
   setBtnLoading(btn, true);
   try{
     try{
-      await apiPost('updateRow', {id:r.id, desc:newDesc, amount});
+      await apiPost('updateRow', {id:r.id, desc:newDesc, amount, date:dateInput, card_date:r.card_date});
     }catch(err){
       // 반복 거래로 생성된, 아직 시트에 저장된 적 없는 행이면 새로 추가
       if(err.message === 'not found'){
@@ -1120,7 +1132,7 @@ async function saveTxEdit(){
     renderHistory();
     showToast('✓ 거래가 수정되었습니다');
   }catch(e){
-    r.desc = prevDesc; r.amount = prevAmount;
+    r.desc=prevDesc; r.amount=prevAmount; r.date=prevDate; r.card_date=prevCardDate; r.is_future=prevIsFuture;
     showToast('⚠️ 저장 실패: '+e.message);
   } finally {
     setBtnLoading(btn, false);
