@@ -18,7 +18,8 @@
 <style>
 /* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#f1f2f5;color:#1a1a18;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+html{overflow-x:hidden}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#f1f2f5;color:#1a1a18;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;overscroll-behavior:none;overflow-x:hidden}
 
 /* ── 로딩 ── */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -68,10 +69,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .panel{display:none;padding:0 0 calc(68px + env(safe-area-inset-bottom))}
 .panel.active{display:block}
 .panel-body{padding:0 20px}
-.panel.slide-from-right{animation:slideFromRight .22s ease both}
-.panel.slide-from-left{animation:slideFromLeft .22s ease both}
-@keyframes slideFromRight{from{transform:translateX(28px);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes slideFromLeft{from{transform:translateX(-28px);opacity:0}to{transform:translateX(0);opacity:1}}
+.panel.slide-from-right{animation:slideFromRight .28s cubic-bezier(.22,.61,.36,1) both}
+.panel.slide-from-left{animation:slideFromLeft .28s cubic-bezier(.22,.61,.36,1) both}
+@keyframes slideFromRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes slideFromLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 
 /* ── 입력탭 잔액 카드 ── */
 .balance-card{background:#1a1a18;border-radius:16px;padding:20px;margin:0 20px 16px;color:#fff;position:relative;overflow:hidden}
