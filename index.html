@@ -68,6 +68,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .panel{display:none;padding:0 0 calc(68px + env(safe-area-inset-bottom))}
 .panel.active{display:block}
 .panel-body{padding:0 20px}
+.panel.slide-from-right{animation:slideFromRight .22s ease both}
+.panel.slide-from-left{animation:slideFromLeft .22s ease both}
+@keyframes slideFromRight{from{transform:translateX(28px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideFromLeft{from{transform:translateX(-28px);opacity:0}to{transform:translateX(0);opacity:1}}
 
 /* ── 입력탭 잔액 카드 ── */
 .balance-card{background:#1a1a18;border-radius:16px;padding:20px;margin:0 20px 16px;color:#fff;position:relative;overflow:hidden}
@@ -734,7 +738,19 @@ function setBtnLoading(btn, loading, loadingText){
 function showTab(name){
   const names=['input','summary','history','card','recurring'];
   const titles={'input':'거래 입력','summary':'이달 요약','history':'거래 내역','card':'카드 결제','recurring':'반복 관리'};
-  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
+  const prevActive=document.querySelector('.panel.active');
+  const prevIdx=prevActive?names.indexOf(prevActive.id.replace('tab-','')):-1;
+  const nextIdx=names.indexOf(name);
+  const dirCls=nextIdx>prevIdx?'slide-from-right':'slide-from-left';
+  document.querySelectorAll('.panel').forEach((p,i)=>{
+    const isActive=names[i]===name;
+    p.classList.toggle('active',isActive);
+    p.classList.remove('slide-from-right','slide-from-left');
+    if(isActive && prevIdx!==-1 && prevIdx!==nextIdx){
+      void p.offsetWidth; // 애니메이션 재시작을 위한 리플로우 강제
+      p.classList.add(dirCls);
+    }
+  });
   names.forEach(n=>{ const tb=document.getElementById('tabbar-'+n); if(tb) tb.classList.toggle('active',n===name); });
   const ht=document.getElementById('header-title'); if(ht) ht.textContent=titles[name]||'가계부';
   if(name==='summary') renderSummary();
