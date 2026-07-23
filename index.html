@@ -227,6 +227,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .recur-toggle input:checked+.slider:before{transform:translateX(15px)}
 
 /* ── 모달 ── */
+body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
 .modal-backdrop.hidden{display:none}
 .modal{background:#fff;border-radius:22px 22px 0 0;padding:0 20px 24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
@@ -724,6 +725,64 @@ function getMonths(){ return[...new Set(rows.filter(r=>!r.is_future).map(r=>r.da
 function getMonthRows(ym){ return rows.filter(r=>r.date.startsWith(ym) && !r.is_future); }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
 
+/* ── 모달 열림/닫힘 시 배경 스크롤 잠금 ── */
+let _scrollLockY = 0;
+function lockBodyScroll(){
+  _scrollLockY = window.scrollY;
+  document.body.style.top = -_scrollLockY + 'px';
+  document.body.classList.add('scroll-locked');
+}
+function unlockBodyScroll(){
+  document.body.classList.remove('scroll-locked');
+  document.body.style.top = '';
+  window.scrollTo(0, _scrollLockY);
+}
+function openModal(id){
+  document.getElementById(id).classList.remove('hidden');
+  lockBodyScroll();
+}
+function closeModalEl(id){
+  document.getElementById(id).classList.add('hidden');
+  unlockBodyScroll();
+}
+
+/* ── 팝업 상단 핸들을 아래로 스와이프해서 닫기 ── */
+(function(){
+  let startY=0, dragging=false, modalEl=null, backdropEl=null;
+  document.addEventListener('touchstart', function(e){
+    const top = e.target.closest('.modal-sticky-top');
+    if(!top){ dragging=false; return; }
+    backdropEl = top.closest('.modal-backdrop');
+    modalEl = top.closest('.modal');
+    if(!backdropEl || !modalEl) return;
+    startY = e.touches[0].clientY;
+    dragging = true;
+    modalEl.style.transition = 'none';
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(!dragging) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy>0) modalEl.style.transform = `translateY(${dy}px)`;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(!dragging) return;
+    dragging = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    modalEl.style.transition = 'transform .18s ease';
+    if(dy>90){
+      modalEl.style.transform = 'translateY(100%)';
+      setTimeout(function(){
+        const closeBtn = backdropEl.querySelector('.modal-close');
+        if(closeBtn) closeBtn.click();
+        modalEl.style.transition=''; modalEl.style.transform='';
+      }, 180);
+    } else {
+      modalEl.style.transform = 'translateY(0)';
+      setTimeout(function(){ modalEl.style.transition=''; }, 200);
+    }
+  }, {passive:true});
+})();
+
 /* ── 저장 버튼 로딩 상태 ── */
 // 저장 중에는 버튼을 비활성화하고 스피너+문구를 보여줘서, 저장되는 동안
 // 사용자가 버튼을 또 눌러 중복 요청을 보내는 것을 막는다.
@@ -1089,9 +1148,9 @@ function openTxEditModal(id){
   document.getElementById('tx-edit-desc').value = descVal;
   document.getElementById('tx-edit-amount').value = r.amount.toLocaleString('ko-KR');
   document.getElementById('tx-edit-amount').dataset.raw = String(r.amount);
-  document.getElementById('tx-edit-modal').classList.remove('hidden');
+  openModal('tx-edit-modal');
 }
-function closeTxEditModal(){ document.getElementById('tx-edit-modal').classList.add('hidden'); editingTxId = null; }
+function closeTxEditModal(){ closeModalEl('tx-edit-modal'); editingTxId = null; }
 
 async function saveTxEdit(){
   const btn = document.getElementById('tx-edit-save-btn');
@@ -1369,7 +1428,7 @@ function openAddRecurModal(){
   const today=new Date().toISOString().slice(0,7);
   document.getElementById('rm-start').value=today;
   document.getElementById('rm-end').value='';
-  document.getElementById('recur-modal').classList.remove('hidden');
+  openModal('recur-modal');
 }
 
 function openEditRecurModal(id){
@@ -1394,10 +1453,10 @@ function openEditRecurModal(id){
   document.getElementById('rm-card-day').value = r.card_day || '5';
   document.getElementById('rm-start').value = r.start;
   document.getElementById('rm-end').value = r.end || '';
-  document.getElementById('recur-modal').classList.remove('hidden');
+  openModal('recur-modal');
 }
 
-function closeAddRecurModal(){ document.getElementById('recur-modal').classList.add('hidden'); editingRecurId = null; }
+function closeAddRecurModal(){ closeModalEl('recur-modal'); editingRecurId = null; }
 function setModalType(t){ modalType=t;
   document.getElementById('rm-btn-expense').className='seg-btn'+(t==='expense'?' active-expense':'');
   document.getElementById('rm-btn-income').className='seg-btn'+(t==='income'?' active-income':'');
@@ -1473,14 +1532,14 @@ const SEARCH_RESULT_LIMIT=50;
 let searchShowCount=SEARCH_RESULT_LIMIT;
 
 function openSearchModal(){
-  document.getElementById('search-modal').classList.remove('hidden');
+  openModal('search-modal');
   const input=document.getElementById('search-input');
   input.value='';
   searchShowCount=SEARCH_RESULT_LIMIT;
   document.getElementById('search-results').innerHTML='<div class="empty">검색어를 입력하세요</div>';
   setTimeout(()=>input.focus(),50);
 }
-function closeSearchModal(){ document.getElementById('search-modal').classList.add('hidden'); }
+function closeSearchModal(){ closeModalEl('search-modal'); }
 
 function loadMoreSearchResults(){
   searchShowCount+=SEARCH_RESULT_LIMIT;
