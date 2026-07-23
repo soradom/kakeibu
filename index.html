@@ -18,8 +18,7 @@
 <style>
 /* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{overflow-x:hidden}
-body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#f1f2f5;color:#1a1a18;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;overscroll-behavior:none;overflow-x:hidden}
+body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:#f1f2f5;color:#1a1a18;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 
 /* ── 로딩 ── */
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -66,6 +65,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .tab-btn.active .tab-label{font-weight:700}
 
 /* ── 패널 ── */
+#panel-viewport{overflow-x:hidden}
 .panel{display:none;padding:0 0 calc(68px + env(safe-area-inset-bottom))}
 .panel.active{display:block}
 .panel-body{padding:0 20px}
@@ -321,6 +321,8 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
   </div>
 </div>
 
+<!-- 탭 슬라이드 애니메이션 중 가로 스크롤 방지용 뷰포트 (헤더/탭바는 이 밖에 있어 sticky에 영향 없음) -->
+<div id="panel-viewport">
 <!-- 입력 탭 -->
 <div id="tab-input" class="panel active">
   <div class="balance-card">
@@ -389,6 +391,7 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
   </div>
   <button class="recur-add-btn" onclick="openAddRecurModal()">+ 새 반복 거래 추가</button>
   <div id="recurring-list"></div>
+</div>
 </div>
 
 <!-- 하단 탭바 -->
