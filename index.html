@@ -763,7 +763,13 @@ async function addTransaction(){
   if(!amount||amount<=0){showToast('금액을 입력해주세요');return;}
   const isCash=currentType==='expense'&&currentPayment==='cash';
   const isIncome=currentType==='income';
-  if(!isCash&&!isIncome&&!cardDate) cardDate=addMonth(date.slice(0,7))+'-05';
+  if(!isCash&&!isIncome&&!cardDate){
+    // 카드 결제 기준: 전전월 24일~전월 23일 이용분이 당월 5일 결제
+    // 즉 24일 이후 거래는 다음달이 아니라 다다음달 결제로 잡혀야 함
+    const day=parseInt(date.slice(8,10),10);
+    const nextMo=addMonth(date.slice(0,7));
+    cardDate=(day>=24?addMonth(nextMo):nextMo)+'-05';
+  }
   const newRow={
     id:Date.now().toString(36), _seq:rows.length, date,
     category:isIncome?'수입':'지출',
