@@ -122,18 +122,6 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .month-nav-label{font-size:15px;font-weight:700;color:#1a1a18}
 .month-nav select{font-family:inherit;font-size:15px;font-weight:700;color:#1a1a18;background:none;border:none;outline:none;cursor:pointer;text-align:center}
 
-/* ── 요약 탭 잔액 카드 ── */
-.summary-hero{background:#1a1a18;border-radius:16px;padding:22px;margin:0 20px 14px;color:#fff;position:relative;overflow:hidden}
-.summary-hero::after{content:'';position:absolute;width:160px;height:160px;border-radius:50%;background:rgba(68,114,196,.2);top:-40px;right:-30px}
-.sh-label{font-size:12px;color:rgba(255,255,255,.5);font-weight:500;margin-bottom:8px}
-.sh-val{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:16px}
-.sh-divider{border:none;border-top:1px solid rgba(255,255,255,.1);margin-bottom:16px}
-.sh-row{display:flex;justify-content:space-between}
-.sh-item-label{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:4px}
-.sh-item-val{font-size:16px;font-weight:700}
-.sh-item-val.income{color:#5ba4f5}
-.sh-item-val.expense{color:#f57c7c}
-
 /* ── 요약 그리드 ── */
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 20px 14px}
 .summary-card{background:#fff;border-radius:14px;padding:16px}
@@ -1055,25 +1043,14 @@ function renderSummary(){
   const cashExp=mr.filter(r=>r.category==='지출'&&r.is_cash).reduce((s,r)=>s+r.amount,0);
   const cardExp=totalExp-cashExp;
   const sorted=[...mr].filter(r=>!r.is_future).sort((a,b)=>b.date.localeCompare(a.date));
-  const curBal=sorted[sorted.length-1]?.balance??getCurrentBalance();
   const nextMo=addMonth(ym_);
   const nextCardDue=rows.filter(r=>r.card_date===nextMo+'-05').reduce((s,r)=>s+r.amount,0);
+  const curBal=getCurrentBalance();
   const usable=curBal-nextCardDue;
   const thisCardDue=rows.filter(r=>r.card_date===ym_+'-05').reduce((s,r)=>s+r.amount,0);
   const pct=income>0?Math.min(totalExp/income*100,100):0;
   const over=income>0&&totalExp>income;
-  const sh_income = income>0?fmt(income):'-';
-  const sh_expense = fmt(totalExp);
-  let html=`<div class="summary-hero">
-    <div class="sh-label">이번 달 잔액</div>
-    <div class="sh-val">${fmt(curBal)}</div>
-    <hr class="sh-divider">
-    <div class="sh-row">
-      <div><div class="sh-item-label">수입</div><div class="sh-item-val income">${sh_income}</div></div>
-      <div style="text-align:right"><div class="sh-item-label">지출</div><div class="sh-item-val expense">-${sh_expense}</div></div>
-    </div>
-  </div>
-  <div class="summary-grid">
+  let html=`<div class="summary-grid">
     <div class="summary-card"><div class="sc-label">수입</div><div class="sc-val income">${income>0?fmt(income):'-'}</div></div>
     <div class="summary-card"><div class="sc-label">지출 합계</div><div class="sc-val expense">${fmt(totalExp)}</div></div>
     <div class="summary-card"><div class="sc-label">카드 사용</div><div class="sc-val card-c">${fmt(cardExp)}</div></div>
@@ -1082,7 +1059,7 @@ function renderSummary(){
   html+=`<div class="usable-card">
     <div class="uc-label">💰 사용 가능 잔액</div>
     <div class="uc-val${usable<0?' danger':''}">${fmt(usable)}</div>
-    <div class="uc-sub">이달 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
+    <div class="uc-sub">현재 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
   if(thisCardDue>0) html+=`<div class="summary-card" style="margin:0 20px 14px">
     <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
