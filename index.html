@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>가계부</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4472c4">
+<meta name="theme-color" content="#000000">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="가계부">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,6 +57,8 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 
 /* ── 하단 탭바 ── */
 .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e8e9ec;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+/* 하단 네이티브 영역(홈 인디케이터 등)만 검정으로 - 탭바 자체는 흰색 유지 */
+.bottom-edge-fill{position:fixed;left:0;right:0;bottom:0;height:env(safe-area-inset-bottom);background:#000;z-index:101}
 .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;border:none;background:none;font-family:inherit;cursor:pointer;color:#9297a1;transition:color .15s;position:relative}
 .tab-btn.active{color:#4472c4}
 .tab-icon{width:auto;height:auto;padding:5px 16px;display:flex;align-items:center;justify-content:center;border-radius:16px;transition:background .15s}
@@ -418,6 +420,7 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
     <span class="tab-label">반복</span>
   </button>
 </div>
+<div class="bottom-edge-fill"></div>
 
 <!-- 반복 거래 모달 -->
 <div class="modal-backdrop hidden" id="recur-modal">
