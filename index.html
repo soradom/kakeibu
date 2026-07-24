@@ -602,6 +602,7 @@ const RECUR_SEED = [
 ];
 
 const INITIAL_BALANCE = 2367212;
+const BANK_INITIAL_BALANCE = 1937897;
 const API_URL = 'https://script.google.com/macros/s/AKfycbx3kPEbx3mO16UHfrhoX6h8iWMADyL2J4wq95d1AWEMSq3SKe0qKHy4D5vTwSn5-r7fMg/exec';
 const SK_ROWS  = 'kakeibo_rows_v5';
 const SK_RECUR = 'kakeibo_recur_v5';
@@ -741,6 +742,16 @@ function getCurrentBalance(){
   // is_future가 아닌 행 중 마지막 잔액
   const real = rows.filter(r=>!r.is_future);
   return real.length ? real[real.length-1].balance : INITIAL_BALANCE;
+}
+// 통장잔액: 실제 계좌에 입출금되는 내역만 반영 (수입 + 현금 지출, 카드 지출은 결제일에 별도 반영되므로 제외)
+function getBankBalance(){
+  let bal = BANK_INITIAL_BALANCE;
+  rows.forEach(r=>{
+    if(r.is_future) return;
+    if(r.category==='수입') bal += r.amount;
+    else if(r.is_cash) bal -= r.amount;
+  });
+  return bal;
 }
 
 /* ── Helpers ── */
@@ -1045,8 +1056,8 @@ function renderSummary(){
   const sorted=[...mr].filter(r=>!r.is_future).sort((a,b)=>b.date.localeCompare(a.date));
   const nextMo=addMonth(ym_);
   const nextCardDue=rows.filter(r=>r.card_date===nextMo+'-05').reduce((s,r)=>s+r.amount,0);
-  const curBal=getCurrentBalance();
-  const usable=curBal-nextCardDue;
+  const bankBal=getBankBalance();
+  const usable=bankBal-nextCardDue;
   const thisCardDue=rows.filter(r=>r.card_date===ym_+'-05').reduce((s,r)=>s+r.amount,0);
   const pct=income>0?Math.min(totalExp/income*100,100):0;
   const over=income>0&&totalExp>income;
@@ -1056,10 +1067,14 @@ function renderSummary(){
     <div class="summary-card"><div class="sc-label">카드 사용</div><div class="sc-val card-c">${fmt(cardExp)}</div></div>
     <div class="summary-card"><div class="sc-label">현금 사용</div><div class="sc-val cash-c">${fmt(cashExp)}</div></div>
   </div>`;
+  html+=`<div class="usable-card" style="border-left-color:#0d8a56">
+    <div class="uc-label">🏦 통장잔액</div>
+    <div class="uc-val" style="color:#0d8a56">${fmt(bankBal)}</div>
+  </div>`;
   html+=`<div class="usable-card">
     <div class="uc-label">💰 사용 가능 잔액</div>
     <div class="uc-val${usable<0?' danger':''}">${fmt(usable)}</div>
-    <div class="uc-sub">현재 잔액 ${fmt(curBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
+    <div class="uc-sub">통장잔액 ${fmt(bankBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
   if(thisCardDue>0) html+=`<div class="summary-card" style="margin:0 20px 14px">
     <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
