@@ -28,6 +28,11 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .loading-spinner{width:32px;height:32px;border:3px solid #e0e1e5;border-top-color:#4472c4;border-radius:50%;animation:spin .7s linear infinite}
 .loading-text{font-size:13px;color:#9297a1;font-weight:500}
 
+/* ── 당겨서 새로고침 ── */
+#ptr-indicator{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;padding-top:14px;z-index:150;opacity:0;transform:translateY(-100%);pointer-events:none}
+.ptr-spinner{width:26px;height:26px;background:#fff;border:3px solid #e0e1e5;border-top-color:#4472c4;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ptr-spinner.ptr-spin{animation:spin .7s linear infinite}
+
 /* ── PIN 잠금 화면 ── */
 #pw-screen{position:fixed;inset:0;background:#1a1a18;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
 .pin-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:0 30px;width:100%}
@@ -275,6 +280,9 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
 </style>
 </head>
 <body>
+
+<!-- 당겨서 새로고침 인디케이터 -->
+<div id="ptr-indicator"><div class="ptr-spinner"></div></div>
 
 <!-- 로딩 -->
 <div id="loading-overlay">
@@ -650,6 +658,31 @@ async function loadAll() {
   showLoading(false);
 }
 
+// 당겨서 새로고침 전용: 실패해도 화면에 이미 표시된 데이터는 지우지 않음
+async function refreshData(){
+  try{
+    const [apiRows, apiRecur] = await Promise.all([apiGet('getRows'), apiGet('getRecur')]);
+    rows = apiRows || [];
+    recurRules = apiRecur || [];
+    applyRecurring();
+    recalcBalances();
+    updateHeaderBalance(); updateInputBalance();
+    refreshCurrentTab();
+    showToast('✓ 새로고침 완료');
+  }catch(e){
+    showToast('⚠️ 새로고침 실패: '+e.message);
+  }
+}
+function refreshCurrentTab(){
+  const active=document.querySelector('.panel.active');
+  if(!active) return;
+  const name=active.id.replace('tab-','');
+  if(name==='summary') renderSummary();
+  else if(name==='card') renderCard();
+  else if(name==='history') renderHistory();
+  else if(name==='recurring') renderRecurring();
+}
+
 /* ── 반복 거래 자동 생성 ── */
 function ymd(y,m,d){ return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 function ym(y,m){ return y+'-'+String(m).padStart(2,'0'); }
@@ -856,6 +889,60 @@ function showTab(name){
     if(idx<0) return;
     if(dx<0 && idx<TAB_ORDER.length-1) showTab(TAB_ORDER[idx+1]);
     else if(dx>0 && idx>0) showTab(TAB_ORDER[idx-1]);
+  }, {passive:true});
+})();
+
+/* ── 당겨서 새로고침 (맨 위에서 아래로 당기면 데이터만 다시 불러옴, 페이지 전체 리로드 아님) ── */
+(function(){
+  const PULL_THRESHOLD=70, PULL_MAX=100;
+  let startY=0, dragging=false, pulling=false, refreshing=false;
+  const indicator=document.getElementById('ptr-indicator');
+  const spinner=indicator.querySelector('.ptr-spinner');
+  function blocked(){
+    if(refreshing) return true;
+    if(document.getElementById('pw-screen').style.display!=='none') return true;
+    if(document.querySelector('.modal-backdrop:not(.hidden)')) return true;
+    return false;
+  }
+  function reset(){
+    indicator.style.transition='transform .2s ease, opacity .2s ease';
+    indicator.style.transform='translateY(-100%)';
+    indicator.style.opacity='0';
+    spinner.classList.remove('ptr-spin');
+    spinner.style.transform='';
+  }
+  document.addEventListener('touchstart', function(e){
+    if(blocked() || window.scrollY>0 || e.touches.length!==1){ dragging=false; return; }
+    startY=e.touches[0].clientY;
+    dragging=true; pulling=false;
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(!dragging) return;
+    const dy=e.touches[0].clientY-startY;
+    if(dy<=0 || window.scrollY>0){ dragging=false; if(pulling) reset(); pulling=false; return; }
+    pulling=true;
+    const dist=Math.min(dy*0.5, PULL_MAX);
+    indicator.style.transition='none';
+    indicator.style.transform=`translateY(${dist}px)`;
+    indicator.style.opacity=String(Math.min(dist/PULL_THRESHOLD,1));
+    spinner.style.transform=`rotate(${dist*3}deg)`;
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(!dragging || !pulling){ dragging=false; pulling=false; return; }
+    dragging=false; pulling=false;
+    const dy=e.changedTouches[0].clientY-startY;
+    const dist=Math.min(dy*0.5, PULL_MAX);
+    if(dist>=PULL_THRESHOLD){
+      refreshing=true;
+      indicator.style.transition='transform .15s ease';
+      indicator.style.transform=`translateY(${PULL_THRESHOLD}px)`;
+      indicator.style.opacity='1';
+      spinner.style.transform='';
+      spinner.classList.add('ptr-spin');
+      refreshData().finally(function(){ refreshing=false; reset(); });
+    } else {
+      reset();
+    }
   }, {passive:true});
 })();
 
