@@ -503,6 +503,24 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
   </div>
 </div>
 
+<!-- 삭제 확인 모달 -->
+<div class="modal-backdrop hidden" id="confirm-modal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-sticky-top">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title">삭제 확인</div>
+        <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+      </div>
+    </div>
+    <div id="confirm-message" style="font-size:14px;color:#555;margin-bottom:20px;line-height:1.5">삭제하시겠습니까?</div>
+    <div style="display:flex;gap:10px">
+      <button class="save-btn" onclick="closeConfirmModal()" style="background:#f5f6f8;color:#555;margin-top:0">취소</button>
+      <button class="save-btn" id="confirm-ok-btn" onclick="runConfirmAction()" style="background:#e05c5c;margin-top:0">삭제</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -796,6 +814,36 @@ function openModal(id){
 function closeModalEl(id){
   document.getElementById(id).classList.add('hidden');
   unlockBodyScroll();
+}
+
+/* ── 삭제 확인 팝업 (기존 "한번 더 누르면 삭제" 방식 대체) ── */
+let _confirmActionFn = null;
+function showConfirm(message, onConfirm){
+  document.getElementById('confirm-message').textContent = message;
+  _confirmActionFn = onConfirm;
+  openModal('confirm-modal');
+}
+function closeConfirmModal(){
+  const btn=document.getElementById('confirm-ok-btn');
+  if(btn.disabled) return; // 삭제 처리 중에는 닫기 방지
+  closeModalEl('confirm-modal');
+  _confirmActionFn = null;
+}
+async function runConfirmAction(){
+  const btn = document.getElementById('confirm-ok-btn');
+  if(btn.disabled) return;
+  const fn = _confirmActionFn;
+  if(!fn) return;
+  setBtnLoading(btn, true, '삭제 중...');
+  try{
+    await fn();
+    closeModalEl('confirm-modal');
+    _confirmActionFn = null;
+  }catch(e){
+    showToast('⚠️ 삭제 실패: '+e.message);
+  } finally {
+    setBtnLoading(btn, false);
+  }
 }
 
 /* ── 팝업 상단 핸들을 아래로 스와이프해서 닫기 ── */
@@ -1252,15 +1300,11 @@ async function recalcCardDates(){
 
 /* ── History ── */
 async function deleteRow(id){
-  try{
-    await apiPost('deleteRow', {id});
-    rows=rows.filter(r=>r.id!==id);
-    recalcBalances();
-    updateHeaderBalance(); updateInputBalance(); renderHistory();
-    showToast('삭제되었습니다');
-  }catch(e){
-    showToast('⚠️ 삭제 실패: '+e.message);
-  }
+  await apiPost('deleteRow', {id});
+  rows=rows.filter(r=>r.id!==id);
+  recalcBalances();
+  updateHeaderBalance(); updateInputBalance(); renderHistory();
+  showToast('삭제되었습니다');
 }
 
 function renderHistory(){
@@ -1376,15 +1420,7 @@ document.addEventListener('click', function(e){
   const delBtn = e.target.closest('.del-btn[data-id],.tx-del-btn[data-id]');
   if(delBtn){
     const id = delBtn.getAttribute('data-id');
-    if(delBtn.dataset.confirm === '1'){
-      deleteRow(id);
-    } else {
-      delBtn.dataset.confirm = '1';
-      delBtn.textContent = '확인';
-      delBtn.style.color = '#c03030';
-      delBtn.style.fontWeight = '700';
-      setTimeout(()=>{ if(delBtn.dataset.confirm) { delBtn.dataset.confirm=''; delBtn.textContent='×'; delBtn.style.color=''; delBtn.style.fontWeight=''; } }, 2500);
-    }
+    showConfirm('이 거래 내역을 삭제하시겠습니까?', ()=>deleteRow(id));
     return;
   }
   // 거래내역 수정
@@ -1403,15 +1439,7 @@ document.addEventListener('click', function(e){
   const recurDelBtn = e.target.closest('.recur-del-btn[data-rid]');
   if(recurDelBtn){
     const rid = recurDelBtn.getAttribute('data-rid');
-    if(recurDelBtn.dataset.confirm === '1'){
-      deleteRecur(rid);
-    } else {
-      recurDelBtn.dataset.confirm = '1';
-      recurDelBtn.textContent = '확인';
-      recurDelBtn.style.color = '#c03030';
-      recurDelBtn.style.fontWeight = '700';
-      setTimeout(()=>{ if(recurDelBtn.dataset.confirm) { recurDelBtn.dataset.confirm=''; recurDelBtn.textContent='✕'; recurDelBtn.style.color=''; recurDelBtn.style.fontWeight=''; } }, 2500);
-    }
+    showConfirm('이 반복 거래를 삭제하시겠습니까?', ()=>deleteRecur(rid));
     return;
   }
 });
@@ -1566,12 +1594,16 @@ async function toggleRecur(id, enabled){
 }
 
 async function deleteRecur(id){
+  const prevRules = recurRules;
   recurRules=recurRules.filter(r=>r.id!==id);
   try{
     await queueSaveRecur();
-    renderRecurring();
-    showToast('삭제되었습니다');
-  }catch(e){ showToast('⚠️ 저장 실패: '+e.message); }
+  }catch(e){
+    recurRules = prevRules;
+    throw e;
+  }
+  renderRecurring();
+  showToast('삭제되었습니다');
 }
 
 /* ── Add/Edit recurring modal ── */
