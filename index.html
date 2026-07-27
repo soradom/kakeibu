@@ -89,6 +89,13 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 .bc-val{font-size:30px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
 .bc-sub{font-size:12px;color:rgba(255,255,255,.4)}
 
+/* ── 문자/알림톡 붙여넣기 ── */
+.sms-paste-box{background:#fff;border-radius:14px;padding:16px;margin:-4px 20px 16px;border:1px solid #e0e1e5}
+.sms-paste-box textarea{width:100%;font-family:inherit;font-size:13px;color:#1a1a18;background:#f5f6f8;border:none;border-radius:12px;padding:12px 13px;outline:none;resize:vertical;min-height:90px}
+.sms-paste-box textarea:focus{background:#eef0f4}
+.sms-parse-btn{width:100%;margin-top:10px;padding:12px;background:#4472c4;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.sms-parse-btn:active{opacity:.85}
+
 /* ── 세그먼트 ── */
 .seg-wrap{background:#fff;border-radius:14px;padding:4px;display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 20px 16px}
 .seg-btn{padding:11px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:#9297a1;border-radius:10px;cursor:pointer;transition:all .2s}
@@ -329,6 +336,11 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
     <div class="bc-label">사용 가능 잔액</div>
     <div class="bc-val" id="current-balance-big">-</div>
     <div class="bc-sub" id="current-balance-date">-</div>
+  </div>
+  <button class="recur-add-btn" id="sms-toggle-btn" onclick="toggleSmsPaste()">📋 문자/알림톡 붙여넣어서 자동 입력</button>
+  <div class="sms-paste-box" id="sms-paste-box" style="display:none">
+    <textarea id="sms-paste-input" placeholder="카드 승인 문자나 알림톡 내용을 그대로 붙여넣으세요"></textarea>
+    <button class="sms-parse-btn" onclick="parseSmsPaste()">분석해서 채우기</button>
   </div>
   <div class="seg-wrap">
     <button class="seg-btn active-expense" id="btn-expense" onclick="setType('expense')">지출</button>
@@ -960,6 +972,74 @@ function setPayment(p){ currentPayment=p;
   document.getElementById('btn-card').className='pay-chip'+(p==='card'?' active':'');
   document.getElementById('btn-cash').className='pay-chip'+(p==='cash'?' active':'');
 
+}
+
+/* ── 카드 승인 문자/알림톡 붙여넣기 자동 입력 ── */
+function toggleSmsPaste(){
+  const box=document.getElementById('sms-paste-box');
+  const show=box.style.display==='none';
+  box.style.display=show?'block':'none';
+  if(show) document.getElementById('sms-paste-input').focus();
+}
+
+// 문자/알림톡 형식이 카드사마다 제각각이라 완벽할 수 없음. 최대한 추출하고 나머지는 사용자가 직접 확인/수정.
+function parseCardSms(text){
+  const result={amount:null, date:null, desc:null};
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+
+  // 금액: '누적/잔액/한도/가능' 근처가 아닌 첫 'N,NNN원' 패턴을 거래 금액으로 간주
+  const amtRe=/([\d,]{4,})\s*원/g;
+  let m;
+  while((m=amtRe.exec(text))){
+    const before=text.slice(Math.max(0,m.index-6), m.index);
+    if(/누적|잔액|한도|가능/.test(before)) continue;
+    const val=parseInt(m[1].replace(/,/g,''),10);
+    if(val>0){ result.amount=val; break; }
+  }
+
+  // 날짜: YYYY-MM-DD/YYYY.MM.DD 우선, 없으면 MM/DD(+시간)
+  let dm=text.match(/(\d{4})[.\-](\d{1,2})[.\-](\d{1,2})/);
+  if(dm){
+    result.date=dm[1]+'-'+String(dm[2]).padStart(2,'0')+'-'+String(dm[3]).padStart(2,'0');
+  } else {
+    dm=text.match(/(\d{1,2})\/(\d{1,2})(?:\s+\d{1,2}:\d{2})?/);
+    if(dm){
+      const today=new Date();
+      let year=today.getFullYear();
+      const mo=parseInt(dm[1],10), da=parseInt(dm[2],10);
+      const candidate=new Date(year, mo-1, da);
+      if(candidate.getTime()-today.getTime()>3*86400000) year-=1; // 미래로 보이면 작년 날짜로 보정
+      result.date=year+'-'+String(mo).padStart(2,'0')+'-'+String(da).padStart(2,'0');
+    }
+  }
+
+  // 내역(가맹점명): 숫자/공통 문구가 없는 줄 중 마지막 후보 사용
+  const skipWords=/승인|누적|잔액|한도|카드|님|일시불|할부|Web발신|웹발신|가능|사용/;
+  const candidates=lines.filter(l=>!/\d/.test(l) && !skipWords.test(l) && l.length>=2);
+  if(candidates.length) result.desc=candidates[candidates.length-1];
+
+  return result;
+}
+
+function parseSmsPaste(){
+  const text=document.getElementById('sms-paste-input').value;
+  if(!text.trim()){ showToast('문자 내용을 붙여넣어주세요'); return; }
+  const result=parseCardSms(text);
+  setType('expense'); setPayment('card');
+  if(result.date) document.getElementById('input-date').value=result.date;
+  if(result.desc) document.getElementById('input-desc').value=result.desc;
+  if(result.amount){
+    document.getElementById('input-amount').value=result.amount.toLocaleString('ko-KR');
+    document.getElementById('input-amount').dataset.raw=String(result.amount);
+  }
+  document.getElementById('sms-paste-input').value='';
+  document.getElementById('sms-paste-box').style.display='none';
+  if(!result.amount && !result.desc){
+    showToast('⚠️ 문자에서 정보를 추출하지 못했습니다. 직접 입력해주세요');
+  } else {
+    showToast('✓ 자동 입력 완료 - 확인 후 저장해주세요');
+  }
+  document.getElementById('input-desc').focus();
 }
 async function addTransaction(){
   const btn=document.getElementById('input-save-btn');
