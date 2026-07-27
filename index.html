@@ -743,11 +743,13 @@ function getCurrentBalance(){
   const real = rows.filter(r=>!r.is_future);
   return real.length ? real[real.length-1].balance : INITIAL_BALANCE;
 }
-// 통장잔액: 실제 계좌에 입출금되는 내역만 반영 (수입 + 현금 지출, 카드 지출은 결제일에 별도 반영되므로 제외)
+// 통장잔액: BANK_INITIAL_BALANCE는 "오늘 기준 실제 잔액"이므로, 오늘 이전/오늘 거래는 이미
+// 반영되어 있다고 보고 더하지 않음. 오늘 이후(미래) 거래만 실제 계좌 입출금분(수입/현금 지출)으로 가감.
 function getBankBalance(){
+  const today = new Date().toISOString().slice(0,10);
   let bal = BANK_INITIAL_BALANCE;
   rows.forEach(r=>{
-    if(r.is_future) return;
+    if(r.date<=today) return;
     if(r.category==='수입') bal += r.amount;
     else if(r.is_cash) bal -= r.amount;
   });
