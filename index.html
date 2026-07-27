@@ -744,12 +744,14 @@ function getCurrentBalance(){
   return real.length ? real[real.length-1].balance : INITIAL_BALANCE;
 }
 // 통장잔액: BANK_INITIAL_BALANCE는 "오늘 기준 실제 잔액"이므로, 오늘 이전/오늘 거래는 이미
-// 반영되어 있다고 보고 더하지 않음. 오늘 이후(미래) 거래만 실제 계좌 입출금분(수입/현금 지출)으로 가감.
+// 반영되어 있다고 보고 더하지 않음. 오늘 이후(미래) 수동 입력 거래만 가감.
+// 반복거래는 카드탭 예정 조회용으로 최대 6개월치를 미리 만들어두는 행이라(applyRecurring 참고),
+// 그걸 다 더하면 몇 달치 예상 수입/지출이 한꺼번에 반영돼버리므로 여기서는 제외.
 function getBankBalance(){
   const today = new Date().toISOString().slice(0,10);
   let bal = BANK_INITIAL_BALANCE;
   rows.forEach(r=>{
-    if(r.date<=today) return;
+    if(r.date<=today || r.recurId) return;
     if(r.category==='수입') bal += r.amount;
     else if(r.is_cash) bal -= r.amount;
   });
