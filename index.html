@@ -233,7 +233,10 @@ body{font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;back
 body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
 .modal-backdrop.hidden{display:none}
+.modal-backdrop.center-modal{align-items:center;padding:0 24px}
 .modal{background:#fff;border-radius:22px 22px 0 0;padding:0 20px 24px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.center-modal .modal{border-radius:20px;padding:20px;max-width:340px}
+.center-modal .modal-sticky-top{padding-top:0}
 .modal-sticky-top{position:sticky;top:0;background:#fff;z-index:2;padding-top:8px}
 .modal-handle{width:36px;height:4px;background:#e0e1e5;border-radius:2px;margin:0 auto 18px}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
@@ -503,12 +506,11 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
   </div>
 </div>
 
-<!-- 삭제 확인 모달 -->
-<div class="modal-backdrop hidden" id="confirm-modal">
-  <div class="modal" style="max-width:340px">
+<!-- 삭제 확인 모달 (센터 팝업) -->
+<div class="modal-backdrop hidden center-modal" id="confirm-modal">
+  <div class="modal">
     <div class="modal-sticky-top">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
+      <div class="modal-header" style="margin-bottom:14px">
         <div class="modal-title">삭제 확인</div>
         <button class="modal-close" onclick="closeConfirmModal()">✕</button>
       </div>
@@ -854,7 +856,7 @@ async function runConfirmAction(){
     if(!top){ dragging=false; return; }
     backdropEl = top.closest('.modal-backdrop');
     modalEl = top.closest('.modal');
-    if(!backdropEl || !modalEl) return;
+    if(!backdropEl || !modalEl || backdropEl.classList.contains('center-modal')){ dragging=false; return; }
     startY = e.touches[0].clientY;
     dragging = true;
     modalEl.style.transition = 'none';
