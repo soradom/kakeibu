@@ -313,7 +313,7 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
   <div class="header-top">
     <div class="header-title" id="header-title">거래 입력</div>
     <div class="header-right">
-      <div class="header-balance-chip">현재 잔액 <span id="header-balance">-</span></div>
+      <div class="header-balance-chip">사용 가능 잔액 <span id="header-balance">-</span></div>
       <button class="search-chip" onclick="openSearchModal()" title="통합검색">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
@@ -326,7 +326,7 @@ body.scroll-locked{position:fixed;left:0;right:0;overflow:hidden}
 <!-- 입력 탭 -->
 <div id="tab-input" class="panel active">
   <div class="balance-card">
-    <div class="bc-label">현재 잔액</div>
+    <div class="bc-label">사용 가능 잔액</div>
     <div class="bc-val" id="current-balance-big">-</div>
     <div class="bc-sub" id="current-balance-date">-</div>
   </div>
@@ -1065,20 +1065,19 @@ function renderSummary(){
   const thisCardDue=rows.filter(r=>r.card_date===ym_+'-05').reduce((s,r)=>s+r.amount,0);
   const pct=income>0?Math.min(totalExp/income*100,100):0;
   const over=income>0&&totalExp>income;
-  let html=`<div class="summary-grid">
+  let html=`<div class="balance-card">
+    <div class="bc-label">🏦 통장잔액</div>
+    <div class="bc-val">${fmt(bankBal)}</div>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0">
+    <div class="bc-label">💰 사용 가능 잔액</div>
+    <div class="bc-val" style="font-size:22px;${usable<0?'color:#ff6b6b':''}">${fmt(usable)}</div>
+    <div class="bc-sub">다음달 카드결제 예정 ${fmt(nextCardDue)}</div>
+  </div>`;
+  html+=`<div class="summary-grid">
     <div class="summary-card"><div class="sc-label">수입</div><div class="sc-val income">${income>0?fmt(income):'-'}</div></div>
     <div class="summary-card"><div class="sc-label">지출 합계</div><div class="sc-val expense">${fmt(totalExp)}</div></div>
     <div class="summary-card"><div class="sc-label">카드 사용</div><div class="sc-val card-c">${fmt(cardExp)}</div></div>
     <div class="summary-card"><div class="sc-label">현금 사용</div><div class="sc-val cash-c">${fmt(cashExp)}</div></div>
-  </div>`;
-  html+=`<div class="usable-card" style="border-left-color:#0d8a56">
-    <div class="uc-label">🏦 통장잔액</div>
-    <div class="uc-val" style="color:#0d8a56">${fmt(bankBal)}</div>
-  </div>`;
-  html+=`<div class="usable-card">
-    <div class="uc-label">💰 사용 가능 잔액</div>
-    <div class="uc-val${usable<0?' danger':''}">${fmt(usable)}</div>
-    <div class="uc-sub">통장잔액 ${fmt(bankBal)} − 다음달 카드결제 ${fmt(nextCardDue)}</div>
   </div>`;
   if(thisCardDue>0) html+=`<div class="summary-card" style="margin:0 20px 14px">
     <div class="sc-label">이달 5일 카드 결제 (전월 사용분)</div>
