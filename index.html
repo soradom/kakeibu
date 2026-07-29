@@ -739,8 +739,12 @@ function applyRecurring(){
       if(!exists){
         let cardDate = '';
         if(!rule.is_cash && rule.card_day){
-          const nextMo = addOneMonth(cursor);
-          cardDate = nextMo + '-' + String(rule.card_day).padStart(2,'0');
+          // 카드 결제 기준: 전전월 24일~전월 23일 이용분이 당월 5일 결제이므로
+          // 24일 이후 거래는 다음달이 아니라 다다음달 결제로 잡아야 함 (일반 거래와 동일한 규칙)
+          let cdMo = cursor;
+          const monthsAhead = day>=24 ? 2 : 1;
+          for(let i=0;i<monthsAhead;i++) cdMo = addOneMonth(cdMo);
+          cardDate = cdMo + '-' + String(rule.card_day).padStart(2,'0');
         }
         rows.push({
           id: rule.id+'_'+txDate,
